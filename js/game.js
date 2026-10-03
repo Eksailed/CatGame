@@ -6,87 +6,88 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
+        const V = '?v=3.6';
         // Environment & Heroes
-        this.load.image('tile_floor', 'assets/tile_floor.png');
-        this.load.image('cat_barsik', 'assets/cat_barsik.png');
-        this.load.image('cat_murzik', 'assets/cat_murzik.png');
-        this.load.image('cat_pukhlyash', 'assets/cat_pukhlyash.png');
+        this.load.image('tile_floor', 'assets/tile_floor.png' + V);
+        this.load.image('cat_barsik', 'assets/cat_barsik.png' + V);
+        this.load.image('cat_murzik', 'assets/cat_murzik.png' + V);
+        this.load.image('cat_pukhlyash', 'assets/cat_pukhlyash.png' + V);
 
         // Animated Heroes Spritesheets
-        this.load.spritesheet('cat_barsik_run', 'assets/cat_barsik_run.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('cat_barsik_idle', 'assets/cat_barsik_idle.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.image('cat_barsik_hurt', 'assets/cat_barsik_hurt.png');
+        this.load.spritesheet('cat_barsik_run', 'assets/cat_barsik_run.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('cat_barsik_idle', 'assets/cat_barsik_idle.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.image('cat_barsik_hurt', 'assets/cat_barsik_hurt.png' + V);
 
-        this.load.spritesheet('cat_murzik_run', 'assets/cat_murzik_run.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('cat_murzik_idle', 'assets/cat_murzik_idle.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.image('cat_murzik_hurt', 'assets/cat_murzik_hurt.png');
+        this.load.spritesheet('cat_murzik_run', 'assets/cat_murzik_run.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('cat_murzik_idle', 'assets/cat_murzik_idle.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.image('cat_murzik_hurt', 'assets/cat_murzik_hurt.png' + V);
 
-        this.load.spritesheet('cat_pukhlyash_run', 'assets/cat_pukhlyash_run.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('cat_pukhlyash_idle', 'assets/cat_pukhlyash_idle.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.image('cat_pukhlyash_hurt', 'assets/cat_pukhlyash_hurt.png');
+        this.load.spritesheet('cat_pukhlyash_run', 'assets/cat_pukhlyash_run.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('cat_pukhlyash_idle', 'assets/cat_pukhlyash_idle.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.image('cat_pukhlyash_hurt', 'assets/cat_pukhlyash_hurt.png' + V);
         
         // Obstacles
-        this.load.image('obstacle_crate', 'assets/obstacle_crate.png');
-        this.load.image('obstacle_rock', 'assets/obstacle_rock.png');
-        this.load.image('obstacle_bush', 'assets/obstacle_bush.png');
+        this.load.image('obstacle_crate', 'assets/obstacle_crate.png' + V);
+        this.load.image('obstacle_rock', 'assets/obstacle_rock.png' + V);
+        this.load.image('obstacle_bush', 'assets/obstacle_bush.png' + V);
 
         // Enemies & Bosses (Static fallback + Animated Spritesheets)
-        this.load.image('enemy_mouse', 'assets/enemy_mouse.png');
-        this.load.image('enemy_dog', 'assets/enemy_dog.png');
-        this.load.image('enemy_cucumber', 'assets/enemy_cucumber.png');
-        this.load.image('enemy_pigeon', 'assets/enemy_pigeon.png');
-        this.load.image('enemy_spitter', 'assets/enemy_spitter.png');
-        this.load.image('boss_vacuum', 'assets/boss_vacuum.png');
-        this.load.image('boss_bulldozer', 'assets/boss_bulldozer.png');
+        this.load.image('enemy_mouse', 'assets/enemy_mouse.png' + V);
+        this.load.image('enemy_dog', 'assets/enemy_dog.png' + V);
+        this.load.image('enemy_cucumber', 'assets/enemy_cucumber.png' + V);
+        this.load.image('enemy_pigeon', 'assets/enemy_pigeon.png' + V);
+        this.load.image('enemy_spitter', 'assets/enemy_spitter.png' + V);
+        this.load.image('boss_vacuum', 'assets/boss_vacuum.png' + V);
+        this.load.image('boss_bulldozer', 'assets/boss_bulldozer.png' + V);
 
-        this.load.spritesheet('enemy_mouse_walk', 'assets/enemy_mouse_walk.png', { frameWidth: 48, frameHeight: 48 });
-        this.load.spritesheet('enemy_dog_run', 'assets/enemy_dog_run.png', { frameWidth: 56, frameHeight: 56 });
-        this.load.spritesheet('enemy_cucumber_hop', 'assets/enemy_cucumber_hop.png', { frameWidth: 48, frameHeight: 48 });
-        this.load.spritesheet('enemy_pigeon_fly', 'assets/enemy_pigeon_fly.png', { frameWidth: 48, frameHeight: 48 });
-        this.load.spritesheet('enemy_spitter_walk', 'assets/enemy_spitter_walk.png', { frameWidth: 48, frameHeight: 48 });
-        this.load.spritesheet('boss_vacuum_move', 'assets/boss_vacuum_move.png', { frameWidth: 80, frameHeight: 80 });
-        this.load.spritesheet('boss_bulldozer_move', 'assets/boss_bulldozer_move.png', { frameWidth: 96, frameHeight: 96 });
+        this.load.spritesheet('enemy_mouse_walk', 'assets/enemy_mouse_walk.png' + V, { frameWidth: 48, frameHeight: 48 });
+        this.load.spritesheet('enemy_dog_run', 'assets/enemy_dog_run.png' + V, { frameWidth: 56, frameHeight: 56 });
+        this.load.spritesheet('enemy_cucumber_hop', 'assets/enemy_cucumber_hop.png' + V, { frameWidth: 48, frameHeight: 48 });
+        this.load.spritesheet('enemy_pigeon_fly', 'assets/enemy_pigeon_fly.png' + V, { frameWidth: 48, frameHeight: 48 });
+        this.load.spritesheet('enemy_spitter_walk', 'assets/enemy_spitter_walk.png' + V, { frameWidth: 48, frameHeight: 48 });
+        this.load.spritesheet('boss_vacuum_move', 'assets/boss_vacuum_move.png' + V, { frameWidth: 80, frameHeight: 80 });
+        this.load.spritesheet('boss_bulldozer_move', 'assets/boss_bulldozer_move.png' + V, { frameWidth: 96, frameHeight: 96 });
 
         // Projectiles
-        this.load.image('proj_fish', 'assets/proj_fish.png');
-        this.load.image('proj_yarn', 'assets/proj_yarn.png');
-        this.load.image('proj_slipper', 'assets/proj_slipper.png');
-        this.load.image('proj_laser', 'assets/proj_laser.png');
-        this.load.image('proj_enemy_acid', 'assets/proj_enemy_acid.png');
-        this.load.image('aura_wave', 'assets/aura_wave.png');
+        this.load.image('proj_fish', 'assets/proj_fish.png' + V);
+        this.load.image('proj_yarn', 'assets/proj_yarn.png' + V);
+        this.load.image('proj_slipper', 'assets/proj_slipper.png' + V);
+        this.load.image('proj_laser', 'assets/proj_laser.png' + V);
+        this.load.image('proj_enemy_acid', 'assets/proj_enemy_acid.png' + V);
+        this.load.image('aura_wave', 'assets/aura_wave.png' + V);
 
         // New Weapons & Skills Projectiles
-        this.load.image('proj_claw_slash', 'assets/proj_claw_slash.png');
-        this.load.image('proj_valerian', 'assets/proj_valerian.png');
-        this.load.image('proj_mine', 'assets/proj_mine.png');
-        this.load.image('skill_static', 'assets/skill_static.png');
+        this.load.image('proj_claw_slash', 'assets/proj_claw_slash.png' + V);
+        this.load.image('proj_valerian', 'assets/proj_valerian.png' + V);
+        this.load.image('proj_mine', 'assets/proj_mine.png' + V);
+        this.load.image('skill_static', 'assets/skill_static.png' + V);
 
         // Animated Valerian & Mine Spritesheets
-        this.load.spritesheet('proj_valerian_spin', 'assets/proj_valerian_spin.png', { frameWidth: 56, frameHeight: 56 });
-        this.load.spritesheet('evo_valerian_spin', 'assets/evo_valerian_spin.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('fx_valerian_splash', 'assets/fx_valerian_splash.png', { frameWidth: 96, frameHeight: 96 });
-        this.load.spritesheet('fx_valerian_puddle_loop', 'assets/fx_valerian_puddle_loop.png', { frameWidth: 96, frameHeight: 96 });
-        this.load.spritesheet('fx_valerian_vortex_loop', 'assets/fx_valerian_vortex_loop.png', { frameWidth: 128, frameHeight: 128 });
-        this.load.spritesheet('proj_mine_sheet', 'assets/proj_mine_sheet.png', { frameWidth: 48, frameHeight: 48 });
-        this.load.spritesheet('fx_mine_explosion', 'assets/fx_mine_explosion.png', { frameWidth: 96, frameHeight: 96 });
+        this.load.spritesheet('proj_valerian_spin', 'assets/proj_valerian_spin.png' + V, { frameWidth: 56, frameHeight: 56 });
+        this.load.spritesheet('evo_valerian_spin', 'assets/evo_valerian_spin.png' + V, { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('fx_valerian_splash', 'assets/fx_valerian_splash.png' + V, { frameWidth: 96, frameHeight: 96 });
+        this.load.spritesheet('fx_valerian_puddle_loop', 'assets/fx_valerian_puddle_loop.png' + V, { frameWidth: 96, frameHeight: 96 });
+        this.load.spritesheet('fx_valerian_vortex_loop', 'assets/fx_valerian_vortex_loop.png' + V, { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('proj_mine_sheet', 'assets/proj_mine_sheet.png' + V, { frameWidth: 48, frameHeight: 48 });
+        this.load.spritesheet('fx_mine_explosion', 'assets/fx_mine_explosion.png' + V, { frameWidth: 96, frameHeight: 96 });
 
         // Evolutions
-        this.load.image('evo_shark', 'assets/evo_shark.png');
-        this.load.image('evo_web', 'assets/evo_web.png');
-        this.load.image('evo_dome', 'assets/evo_dome.png');
-        this.load.image('evo_beam', 'assets/evo_beam.png');
-        this.load.image('evo_barrage', 'assets/evo_barrage.png');
-        this.load.image('evo_wolverine', 'assets/evo_wolverine.png');
-        this.load.image('evo_valerian_storm', 'assets/evo_valerian_storm.png');
+        this.load.image('evo_shark', 'assets/evo_shark.png' + V);
+        this.load.image('evo_web', 'assets/evo_web.png' + V);
+        this.load.image('evo_dome', 'assets/evo_dome.png' + V);
+        this.load.image('evo_beam', 'assets/evo_beam.png' + V);
+        this.load.image('evo_barrage', 'assets/evo_barrage.png' + V);
+        this.load.image('evo_wolverine', 'assets/evo_wolverine.png' + V);
+        this.load.image('evo_valerian_storm', 'assets/evo_valerian_storm.png' + V);
 
         // Drops & FX
-        this.load.image('drop_xp', 'assets/drop_xp.png');
-        this.load.image('drop_coin', 'assets/drop_coin.png');
-        this.load.image('drop_heal', 'assets/drop_heal.png');
-        this.load.image('drop_bomb', 'assets/drop_bomb.png');
-        this.load.image('drop_clock', 'assets/drop_clock.png');
-        this.load.image('drop_chest', 'assets/drop_chest.png');
-        this.load.image('fx_dust', 'assets/fx_dust.png');
+        this.load.image('drop_xp', 'assets/drop_xp.png' + V);
+        this.load.image('drop_coin', 'assets/drop_coin.png' + V);
+        this.load.image('drop_heal', 'assets/drop_heal.png' + V);
+        this.load.image('drop_bomb', 'assets/drop_bomb.png' + V);
+        this.load.image('drop_clock', 'assets/drop_clock.png' + V);
+        this.load.image('drop_chest', 'assets/drop_chest.png' + V);
+        this.load.image('fx_dust', 'assets/fx_dust.png' + V);
     }
 
     create() {
@@ -1372,13 +1373,21 @@ class GameScene extends Phaser.Scene {
         const animKey = isEvo ? 'valerian_storm_spin' : 'valerian_spin';
         const flask = this.add.sprite(px, py, flaskKey);
         flask.setDepth(14);
-        flask.setScale(isEvo ? 1.25 : 1.05);
+        flask.setScale(isEvo ? 1.35 : 1.18);
         flask.play(animKey);
 
-        const duration = 480;
+        const duration = 640;
+
+        // Smooth physical tumble rotation end-over-end in flight
+        this.tweens.add({
+            targets: flask,
+            angle: (tx >= px ? 360 : -360),
+            duration: duration,
+            ease: 'Linear'
+        });
 
         // Dynamic ground shadow tracking flask flight
-        const shadow = this.add.ellipse(px, py + 12, 24, 12, 0x000000, 0.4);
+        const shadow = this.add.ellipse(px, py + 12, 26, 13, 0x000000, 0.45);
         shadow.setDepth(2);
         this.tweens.add({
             targets: shadow,
@@ -1396,33 +1405,34 @@ class GameScene extends Phaser.Scene {
             ease: 'Linear'
         });
 
-        // Glowing particle trail emitted during flight
+        // Continuous streaming bubbles & sparkles trailing behind the flying vial
         const trailTimer = this.time.addEvent({
-            delay: 45,
-            repeat: Math.floor(duration / 45),
+            delay: 35,
+            repeat: Math.floor(duration / 35),
             callback: () => {
                 if (!flask || !flask.active) return;
-                const sparkle = this.add.circle(
-                    flask.x + Phaser.Math.Between(-3, 3),
-                    flask.y + Phaser.Math.Between(-3, 3),
-                    Phaser.Math.Between(2, 4),
+                const bubble = this.add.circle(
+                    flask.x + Phaser.Math.Between(-5, 5),
+                    flask.y + Phaser.Math.Between(-5, 5),
+                    Phaser.Math.Between(3, 6),
                     isEvo ? 0xebdef0 : 0xa9dfbf,
                     0.85
                 );
-                sparkle.setDepth(13);
+                bubble.setDepth(13);
                 this.tweens.add({
-                    targets: sparkle,
-                    scale: 0.1,
+                    targets: bubble,
+                    y: bubble.y - Phaser.Math.Between(15, 28),
                     alpha: 0,
-                    y: sparkle.y + 10,
-                    duration: 220,
-                    onComplete: () => sparkle.destroy()
+                    scale: 0.2,
+                    duration: 320,
+                    ease: 'Quad.easeOut',
+                    onComplete: () => bubble.destroy()
                 });
             }
         });
 
         // Y arcs upwards first then plummets down with impact
-        const peakY = Math.min(py, ty) - 85;
+        const peakY = Math.min(py, ty) - 95;
         this.tweens.add({
             targets: flask,
             y: peakY,
