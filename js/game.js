@@ -107,8 +107,65 @@ class BootScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('[Game] All assets loaded, starting GameScene');
-        this.scene.start('GameScene');
+        console.log('[Game] Pre-caching assets and registering animations in background...');
+        this.registerAllAnimations();
+
+        if (window.gameStarted) {
+            this.scene.start('GameScene');
+        } else {
+            this.scene.sleep();
+        }
+    }
+
+    registerAllAnimations() {
+        ['barsik', 'murzik', 'pukhlyash'].forEach(heroId => {
+            if (!this.anims.exists(`${heroId}_run`)) {
+                this.anims.create({
+                    key: `${heroId}_run`,
+                    frames: this.anims.generateFrameNumbers(`cat_${heroId}_run`, { start: 0, end: 3 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+            if (!this.anims.exists(`${heroId}_idle`)) {
+                this.anims.create({
+                    key: `${heroId}_idle`,
+                    frames: this.anims.generateFrameNumbers(`cat_${heroId}_idle`, { start: 0, end: 1 }),
+                    frameRate: 3,
+                    repeat: -1
+                });
+            }
+        });
+
+        const list = [
+            { key: 'mouse_walk', sheet: 'enemy_mouse_walk', start: 0, end: 3, rate: 10, repeat: -1 },
+            { key: 'dog_run', sheet: 'enemy_dog_run', start: 0, end: 3, rate: 12, repeat: -1 },
+            { key: 'cucumber_hop', sheet: 'enemy_cucumber_hop', start: 0, end: 3, rate: 8, repeat: -1 },
+            { key: 'pigeon_fly', sheet: 'enemy_pigeon_fly', start: 0, end: 3, rate: 10, repeat: -1 },
+            { key: 'spitter_walk', sheet: 'enemy_spitter_walk', start: 0, end: 3, rate: 8, repeat: -1 },
+            { key: 'vacuum_move', sheet: 'boss_vacuum_move', start: 0, end: 3, rate: 8, repeat: -1 },
+            { key: 'bulldozer_move', sheet: 'boss_bulldozer_move', start: 0, end: 3, rate: 8, repeat: -1 },
+            { key: 'valerian_spin', sheet: 'proj_valerian_spin', start: 0, end: 7, rate: 18, repeat: -1 },
+            { key: 'valerian_storm_spin', sheet: 'evo_valerian_spin', start: 0, end: 7, rate: 20, repeat: -1 },
+            { key: 'valerian_splash', sheet: 'fx_valerian_splash', start: 0, end: 7, rate: 18, repeat: 0 },
+            { key: 'valerian_puddle_anim', sheet: 'fx_valerian_puddle_loop', start: 0, end: 5, rate: 8, repeat: -1 },
+            { key: 'valerian_vortex_anim', sheet: 'fx_valerian_vortex_loop', start: 0, end: 5, rate: 10, repeat: -1 },
+            { key: 'mine_arm_pulse', sheet: 'proj_mine_sheet', start: 1, end: 3, rate: 6, repeat: -1 },
+            { key: 'mine_explosion', sheet: 'fx_mine_explosion', start: 0, end: 4, rate: 16, repeat: 0 },
+            { key: 'chopper_flight', sheet: 'cat_chopper_fly', start: 0, end: 7, rate: 14, repeat: -1 },
+            { key: 'chopper_downwash_anim', sheet: 'fx_chopper_downwash', start: 0, end: 7, rate: 14, repeat: -1 }
+        ];
+
+        list.forEach(a => {
+            if (!this.anims.exists(a.key)) {
+                this.anims.create({
+                    key: a.key,
+                    frames: this.anims.generateFrameNumbers(a.sheet, { start: a.start, end: a.end }),
+                    frameRate: a.rate,
+                    repeat: a.repeat
+                });
+            }
+        });
     }
 }
 
@@ -193,123 +250,11 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // Register character animations
-        ['barsik', 'murzik', 'pukhlyash'].forEach(heroId => {
-            this.anims.create({
-                key: `${heroId}_run`,
-                frames: this.anims.generateFrameNumbers(`cat_${heroId}_run`, { start: 0, end: 3 }),
-                frameRate: 10,
-                repeat: -1
-            });
-            this.anims.create({
-                key: `${heroId}_idle`,
-                frames: this.anims.generateFrameNumbers(`cat_${heroId}_idle`, { start: 0, end: 1 }),
-                frameRate: 3,
-                repeat: -1
-            });
-        });
-
-        // Register enemy animations
-        this.anims.create({
-            key: 'mouse_walk',
-            frames: this.anims.generateFrameNumbers('enemy_mouse_walk', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'dog_run',
-            frames: this.anims.generateFrameNumbers('enemy_dog_run', { start: 0, end: 3 }),
-            frameRate: 12,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'cucumber_hop',
-            frames: this.anims.generateFrameNumbers('enemy_cucumber_hop', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'pigeon_fly',
-            frames: this.anims.generateFrameNumbers('enemy_pigeon_fly', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'spitter_walk',
-            frames: this.anims.generateFrameNumbers('enemy_spitter_walk', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'vacuum_move',
-            frames: this.anims.generateFrameNumbers('boss_vacuum_move', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'bulldozer_move',
-            frames: this.anims.generateFrameNumbers('boss_bulldozer_move', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-
-        // Valerian & Meow Mine Animated Effects
-        this.anims.create({
-            key: 'valerian_spin',
-            frames: this.anims.generateFrameNumbers('proj_valerian_spin', { start: 0, end: 7 }),
-            frameRate: 18,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'valerian_storm_spin',
-            frames: this.anims.generateFrameNumbers('evo_valerian_spin', { start: 0, end: 7 }),
-            frameRate: 20,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'valerian_splash',
-            frames: this.anims.generateFrameNumbers('fx_valerian_splash', { start: 0, end: 7 }),
-            frameRate: 18,
-            repeat: 0
-        });
-        this.anims.create({
-            key: 'valerian_puddle_anim',
-            frames: this.anims.generateFrameNumbers('fx_valerian_puddle_loop', { start: 0, end: 5 }),
-            frameRate: 8,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'valerian_vortex_anim',
-            frames: this.anims.generateFrameNumbers('fx_valerian_vortex_loop', { start: 0, end: 5 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'mine_arm_pulse',
-            frames: this.anims.generateFrameNumbers('proj_mine_sheet', { start: 1, end: 3 }),
-            frameRate: 6,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'mine_explosion',
-            frames: this.anims.generateFrameNumbers('fx_mine_explosion', { start: 0, end: 4 }),
-            frameRate: 16,
-            repeat: 0
-        });
-
-        // Helicopter Evacuation Animations
-        this.anims.create({
-            key: 'chopper_flight',
-            frames: this.anims.generateFrameNumbers('cat_chopper_fly', { start: 0, end: 7 }),
-            frameRate: 14,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'chopper_downwash_anim',
-            frames: this.anims.generateFrameNumbers('fx_chopper_downwash', { start: 0, end: 7 }),
-            frameRate: 14,
-            repeat: -1
-        });
+        // Ensure animations are ready
+        const boot = this.scene.get('BootScene');
+        if (boot && typeof boot.registerAllAnimations === 'function') {
+            boot.registerAllAnimations();
+        }
 
         // 1. Arena Bounds & Background
         this.physics.world.setBounds(0, 0, this.arenaSize, this.arenaSize);
@@ -434,22 +379,15 @@ class GameScene extends Phaser.Scene {
         const sz = this.arenaSize;
         const wallThickness = 18;
 
-        // Top & Bottom fortress walls
-        for (let x = 32; x < sz; x += 64) {
-            const topW = this.add.image(x, wallThickness, 'boundary_wall');
-            topW.setDepth(2);
-            const botW = this.add.image(x, sz - wallThickness, 'boundary_wall');
-            botW.setDepth(2);
-        }
-        // Left & Right fortress walls (rotated 90 deg)
-        for (let y = 32; y < sz; y += 64) {
-            const leftW = this.add.image(wallThickness, y, 'boundary_wall');
-            leftW.setAngle(90);
-            leftW.setDepth(2);
-            const rightW = this.add.image(sz - wallThickness, y, 'boundary_wall');
-            rightW.setAngle(90);
-            rightW.setDepth(2);
-        }
+        // Top & Bottom fortress walls (tileSprites for high performance, no stutter)
+        this.add.tileSprite(sz / 2, wallThickness, sz, 36, 'boundary_wall').setDepth(2);
+        this.add.tileSprite(sz / 2, sz - wallThickness, sz, 36, 'boundary_wall').setDepth(2);
+
+        // Left & Right fortress walls
+        const leftW = this.add.tileSprite(wallThickness, sz / 2, sz, 36, 'boundary_wall').setDepth(2);
+        leftW.setAngle(90);
+        const rightW = this.add.tileSprite(sz - wallThickness, sz / 2, sz, 36, 'boundary_wall').setDepth(2);
+        rightW.setAngle(90);
 
         // Decorative stone boundary line
         const boundsGraphics = this.add.graphics();

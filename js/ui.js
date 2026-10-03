@@ -31,6 +31,8 @@ class UIManager {
         this.renderMainMenu();
         this.updateLocalization();
         this.updateQuestBadge();
+        // Background pre-warm Phaser engine and assets to eliminate initial freeze
+        setTimeout(() => this.initPhaserGame(), 100);
     }
 
     async loadSaveData() {
@@ -581,6 +583,29 @@ class UIManager {
         document.getElementById('modal-shop').classList.remove('hidden');
     }
 
+    initPhaserGame() {
+        if (this.gameInstance) return;
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game-canvas-container',
+            scale: {
+                mode: Phaser.Scale.RESIZE,
+                width: '100%',
+                height: '100%'
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: [BootScene, GameScene],
+            backgroundColor: '#27ae60'
+        };
+        this.gameInstance = new Phaser.Game(config);
+    }
+
     startGame() {
         if (!this.unlockedHeroes.includes(this.selectedHeroId)) {
             if (window.soundManager) window.soundManager.playNoise(0.2, 0.2);
@@ -594,29 +619,22 @@ class UIManager {
 
         this.reviveUsedInRun = false;
         this.doubleCoinsUsed = false;
+        window.gameStarted = true;
 
         if (!this.gameInstance) {
-            const config = {
-                type: Phaser.AUTO,
-                parent: 'game-canvas-container',
-                scale: {
-                    mode: Phaser.Scale.RESIZE,
-                    width: '100%',
-                    height: '100%'
-                },
-                physics: {
-                    default: 'arcade',
-                    arcade: {
-                        gravity: { y: 0 },
-                        debug: false
-                    }
-                },
-                scene: [BootScene, GameScene],
-                backgroundColor: '#27ae60'
-            };
-            this.gameInstance = new Phaser.Game(config);
+            this.initPhaserGame();
         } else {
-            this.gameInstance.scene.start('GameScene');
+            const boot = this.gameInstance.scene.getScene('BootScene');
+            const gameScene = this.gameInstance.scene.getScene('GameScene');
+            if (boot && boot.load && boot.load.isLoading()) {
+                boot.load.once('complete', () => {
+                    this.gameInstance.scene.start('GameScene');
+                });
+            } else if (gameScene && gameScene.scene.isActive()) {
+                gameScene.scene.restart();
+            } else {
+                this.gameInstance.scene.start('GameScene');
+            }
         }
     }
 
