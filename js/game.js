@@ -916,13 +916,15 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.evacTriggered && !this.evacCompleted && !this.isEndlessMode) {
-            this.evacCountdown--;
-            const countEl = document.getElementById('evac-countdown');
-            if (countEl) countEl.innerText = Math.max(0, this.evacCountdown);
+            if (this.evacCountdown > 0) {
+                this.evacCountdown--;
+                const countEl = document.getElementById('evac-countdown');
+                if (countEl) countEl.innerText = Math.max(0, this.evacCountdown);
 
-            if (this.evacCountdown % 5 === 0 && this.evacCountdown > 0) {
-                if (window.soundManager && typeof window.soundManager.playEvacAlarm === 'function') {
-                    window.soundManager.playEvacAlarm();
+                if (this.evacCountdown % 5 === 0 && this.evacCountdown > 0) {
+                    if (window.soundManager && typeof window.soundManager.playEvacAlarm === 'function') {
+                        window.soundManager.playEvacAlarm();
+                    }
                 }
             }
 
@@ -930,12 +932,23 @@ class GameScene extends Phaser.Scene {
                 const targetX = this.helipad ? this.helipad.x : (this.arenaSize / 2);
                 const targetY = this.helipad ? this.helipad.y : (this.arenaSize / 2);
                 const distToHelipad = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
-                if (distToHelipad < 300 || this.level >= 2) {
+
+                if (distToHelipad <= 85) {
                     this.executeHelicopterRescue();
-                } else if (this.survivalTime % 3 === 0) {
-                    this.showDamageText(this.player.x, this.player.y - 50, '🚁 ВЕРТОЛЁТ ЖДЁТ НА ПЛОЩАДКЕ! БЕГИ! 🚁', '#f1c40f');
-                    if (window.soundManager && typeof window.soundManager.playEvacAlarm === 'function') {
-                        window.soundManager.playEvacAlarm();
+                } else {
+                    const banner = document.getElementById('evac-hud-banner');
+                    if (banner) {
+                        banner.innerHTML = `
+                            <div class="evac-hud-badge" style="color: #ffd700;">🚁 ВЕРТОЛЁТ ЖДЁТ! 🚁</div>
+                            <div class="evac-hud-timer" style="color: #2ecc71; font-size: 1.15rem;">⚡ ЗАЙДИ В КРУГ ПОСАДКИ! ⚡</div>
+                            <div class="evac-hud-hint">Встань на вертолётную площадку со знаком «H»!</div>
+                        `;
+                    }
+                    if (this.survivalTime % 2 === 0) {
+                        this.showDamageText(this.player.x, this.player.y - 50, '🚁 ЗАЙДИ В КРУГ ПОСАДКИ! 🚁', '#f1c40f');
+                        if (window.soundManager && typeof window.soundManager.playEvacAlarm === 'function') {
+                            window.soundManager.playEvacAlarm();
+                        }
                     }
                 }
             }
@@ -1069,23 +1082,37 @@ class GameScene extends Phaser.Scene {
             if (window.uiManager) window.uiManager.updateBossBar(this.activeBoss.hp, this.activeBoss.maxHp);
         }
 
-        // 7. Evacuation Navigation Indicator
+        // 7. Evacuation Navigation & Realtime Helipad Landing Circle Check
         if (this.evacTriggered && !this.evacCompleted && !this.isEndlessMode) {
-            const center = this.arenaSize / 2;
-            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center);
-            if (dist > 180) {
+            const targetX = this.helipad ? this.helipad.x : (this.arenaSize / 2);
+            const targetY = this.helipad ? this.helipad.y : (this.arenaSize / 2);
+            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
+
+            // Radius of helipad circle zone is ~85px
+            const insideLandingCircle = (dist <= 85);
+
+            // Trigger rescue video ONLY when cat enters the landing circle!
+            if (this.evacCountdown <= 0 && insideLandingCircle) {
+                this.executeHelicopterRescue();
+                return;
+            }
+
+            // Directional arrow navigation towards the helipad circle
+            if (dist > 75) {
                 if (!this.evacIndicator) {
                     this.evacIndicator = this.add.graphics().setDepth(20);
                 }
                 const g = this.evacIndicator;
                 g.clear();
-                const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, center, center);
-                const ax = this.player.x + Math.cos(ang) * 60;
-                const ay = this.player.y + Math.sin(ang) * 60;
-                g.fillStyle(0x2ecc71, 0.95);
-                g.fillCircle(ax, ay, 6);
-                g.lineStyle(3, 0xffffff, 0.9);
-                g.lineBetween(ax, ay, ax + Math.cos(ang) * 16, ay + Math.sin(ang) * 16);
+                const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, targetX, targetY);
+                const ax = this.player.x + Math.cos(ang) * 55;
+                const ay = this.player.y + Math.sin(ang) * 55;
+
+                const pulse = Math.sin(time / 160) * 0.2 + 0.8;
+                g.fillStyle(0x2ecc71, pulse);
+                g.fillCircle(ax, ay, 7);
+                g.lineStyle(3, 0xffffff, 0.95);
+                g.lineBetween(ax, ay, ax + Math.cos(ang) * 18, ay + Math.sin(ang) * 18);
             } else if (this.evacIndicator) {
                 this.evacIndicator.clear();
             }
@@ -2729,8 +2756,8 @@ class GameScene extends Phaser.Scene {
             }
 
             const center = this.arenaSize / 2;
-            const padX = (Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center) < 350) ? center : this.player.x;
-            const padY = (Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center) < 350) ? center : this.player.y;
+            const padX = center;
+            const padY = center;
 
             if (!this.helipad) {
                 this.helipad = this.add.image(padX, padY, 'helipad_zone');
