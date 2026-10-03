@@ -2762,157 +2762,19 @@ class GameScene extends Phaser.Scene {
             const banner = document.getElementById('evac-hud-banner');
             if (banner) banner.classList.add('hidden');
 
-            // Immunity and stop player controls
+            // Immunity and pause game battle
             this.invulnerableTimer = 999999;
             this.isDashing = false;
+            this.pauseGame();
 
-            const center = this.arenaSize / 2;
-            const targetX = this.helipad ? this.helipad.x : center;
-            const targetY = (this.helipad ? this.helipad.y : center) - 20;
-
-            if (window.soundManager && typeof window.soundManager.playChopperRotor === 'function') {
-                window.soundManager.playChopperRotor();
+            // Play cinematic in-game mini video ending cutscene!
+            if (window.uiManager && typeof window.uiManager.playEndingCutscene === 'function') {
+                window.uiManager.playEndingCutscene(() => {
+                    this.triggerVictory();
+                });
+            } else {
+                this.triggerVictory();
             }
-
-            // 1. Ground Shadow (using shadow_char image)
-            this.chopperShadow = this.add.image(targetX - 5, targetY + 36, 'shadow_char');
-            this.chopperShadow.setDepth(2);
-            this.chopperShadow.setScale(1.5, 0.8);
-            this.chopperShadow.setAlpha(0.15);
-
-            // 2. Downwash Wind Vortex Ring on helipad
-            if (this.textures.exists('fx_chopper_downwash')) {
-                this.chopperDownwash = this.add.sprite(targetX - 5, targetY + 30, 'fx_chopper_downwash');
-                this.chopperDownwash.setDepth(3);
-                this.chopperDownwash.setScale(1.4);
-                this.chopperDownwash.setAlpha(0.15);
-                if (this.anims.exists('chopper_downwash_anim')) {
-                    this.chopperDownwash.play('chopper_downwash_anim');
-                }
-            }
-
-            // 3. Fully Animated Rescue Helicopter Sprite
-            const chopperKey = this.textures.exists('cat_chopper_fly') ? 'cat_chopper_fly' : 'cat_chopper';
-            this.chopper = this.add.sprite(targetX, targetY - 550, chopperKey);
-            this.chopper.setDepth(15);
-            this.chopper.setScale(1.25);
-            if (this.anims.exists('chopper_flight')) {
-                this.chopper.play('chopper_flight');
-            }
-
-            // Subtle hovering tilt & bob
-            const hoverTween = this.tweens.add({
-                targets: this.chopper,
-                angle: { from: -1.5, to: 1.5 },
-                yoyo: true,
-                repeat: -1,
-                duration: 800,
-                ease: 'Sine.easeInOut'
-            });
-
-            // Descent tween
-            this.tweens.add({
-                targets: this.chopper,
-                y: targetY,
-                duration: 1800,
-                ease: 'Power2.easeOut',
-                onUpdate: (tween) => {
-                    const prog = tween.progress;
-                    if (this.chopperShadow && this.chopperShadow.active) {
-                        this.chopperShadow.setAlpha(0.15 + prog * 0.65);
-                        this.chopperShadow.setScale(1.5 + prog * 1.5, 0.8 + prog * 0.8);
-                    }
-                    if (this.chopperDownwash && this.chopperDownwash.active) {
-                        this.chopperDownwash.setAlpha(0.15 + prog * 0.75);
-                        this.chopperDownwash.setScale(1.4 + prog * 0.4);
-                    }
-                },
-                onComplete: () => {
-                    if (window.soundManager && typeof window.soundManager.playMeow === 'function') {
-                        window.soundManager.playMeow();
-                    }
-                    this.cameras.main.shake(300, 0.006);
-
-                    // Push enemies away from helipad landing zone
-                    this.enemies.getChildren().forEach(e => {
-                        if (!e.active) return;
-                        const d = Phaser.Math.Distance.Between(targetX, targetY, e.x, e.y);
-                        if (d < 240) {
-                            const pushAng = Phaser.Math.Angle.Between(targetX, targetY, e.x, e.y);
-                            e.x += Math.cos(pushAng) * 120;
-                            e.y += Math.sin(pushAng) * 120;
-                            this.damageEnemy(e, 80);
-                        }
-                    });
-
-                    // Cat hops onto the ladder and into the chopper!
-                    this.tweens.add({
-                        targets: this.player,
-                        x: targetX - 10,
-                        y: targetY + 12,
-                        scaleX: 0.4,
-                        scaleY: 0.4,
-                        duration: 650,
-                        ease: 'Back.easeIn',
-                        onComplete: () => {
-                            this.player.setAlpha(0);
-                            if (this.playerShadow) this.playerShadow.setAlpha(0);
-
-                            // Helicopter climbs and flies away
-                            this.time.delayedCall(500, () => {
-                                if (window.soundManager) {
-                                    if (typeof window.soundManager.playChopperRotor === 'function') window.soundManager.playChopperRotor();
-                                    if (typeof window.soundManager.playVictoryFanfare === 'function') window.soundManager.playVictoryFanfare();
-                                }
-
-                                // Flash & triumphant takeoff
-                                this.cameras.main.flash(600, 255, 235, 100);
-
-                                // Fade out shadow and downwash
-                                if (this.chopperShadow && this.chopperShadow.active) {
-                                    this.tweens.add({
-                                        targets: this.chopperShadow,
-                                        alpha: 0,
-                                        scaleX: 0.3,
-                                        scaleY: 0.15,
-                                        duration: 1000,
-                                        onComplete: () => {
-                                            if (this.chopperShadow) this.chopperShadow.destroy();
-                                        }
-                                    });
-                                }
-                                if (this.chopperDownwash && this.chopperDownwash.active) {
-                                    this.tweens.add({
-                                        targets: this.chopperDownwash,
-                                        alpha: 0,
-                                        duration: 800,
-                                        onComplete: () => {
-                                            if (this.chopperDownwash) this.chopperDownwash.destroy();
-                                        }
-                                    });
-                                }
-
-                                // Forward tilt for takeoff
-                                hoverTween.stop();
-                                this.chopper.angle = -6;
-
-                                this.tweens.add({
-                                    targets: this.chopper,
-                                    y: targetY - 800,
-                                    x: targetX + 220,
-                                    scaleX: 1.45,
-                                    scaleY: 1.45,
-                                    duration: 1800,
-                                    ease: 'Power2.easeIn',
-                                    onComplete: () => {
-                                        this.triggerVictory();
-                                    }
-                                });
-                            });
-                        }
-                    });
-                }
-            });
         } catch (err) {
             console.error('Rescue execution error:', err);
             this.triggerVictory();

@@ -213,6 +213,16 @@
             </div>
         </div>
 
+        <!-- 4. CINEMATIC IN-GAME CUTSCENE OVERLAY -->
+        <div id="cutscene-overlay" class="cutscene-overlay hidden">
+            <div class="cutscene-cinema-box">
+                <video id="in-game-cutscene-video" playsinline muted autoplay poster="assets/cat_evacuation_ending.gif" style="width: 100%; height: 100%; display: block; object-fit: contain;">
+                    <source src="assets/cat_evacuation_ending.mp4" type="video/mp4">
+                </video>
+                <button id="btn-skip-cutscene" class="btn-skip-cutscene">Пропустить ⏩</button>
+            </div>
+        </div>
+
         <!-- Victory Modal -->
         <div id="modal-victory" class="modal-overlay hidden">
             <div class="modal-content victory-modal-content">

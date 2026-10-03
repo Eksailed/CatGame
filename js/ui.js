@@ -889,6 +889,70 @@ class UIManager {
         document.getElementById('modal-gameover').classList.add('hidden');
     }
 
+    playEndingCutscene(onComplete) {
+        const overlay = document.getElementById('cutscene-overlay');
+        const video = document.getElementById('in-game-cutscene-video');
+        const skipBtn = document.getElementById('btn-skip-cutscene');
+
+        if (!overlay || !video) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        overlay.classList.remove('hidden');
+
+        // Synchronized sound effects during the in-game movie
+        if (window.soundManager) {
+            if (typeof window.soundManager.playEvacAlarm === 'function') {
+                window.soundManager.playEvacAlarm();
+            }
+            if (typeof window.soundManager.playChopperRotor === 'function') {
+                window.soundManager.playChopperRotor();
+            }
+            setTimeout(() => {
+                if (window.soundManager && typeof window.soundManager.playVictoryFanfare === 'function') {
+                    window.soundManager.playVictoryFanfare();
+                }
+            }, 4100);
+        }
+
+        let finished = false;
+        const finishCutscene = () => {
+            if (finished) return;
+            finished = true;
+            try { video.pause(); } catch (e) {}
+            overlay.classList.add('hidden');
+            if (onComplete) onComplete();
+        };
+
+        if (skipBtn) {
+            skipBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (window.soundManager && typeof window.soundManager.playClick === 'function') {
+                    window.soundManager.playClick();
+                }
+                finishCutscene();
+            };
+        }
+
+        video.currentTime = 0;
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(err => {
+                console.warn('Cutscene video autoplay notice:', err);
+            });
+        }
+
+        video.onended = () => {
+            finishCutscene();
+        };
+
+        // Safety fallback timer (8s)
+        setTimeout(() => {
+            if (!finished) finishCutscene();
+        }, 8000);
+    }
+
     showVictoryModal() {
         const modal = document.getElementById('modal-victory');
         if (!modal) return;

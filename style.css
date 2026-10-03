@@ -1070,3 +1070,59 @@ html, body {
     100% { transform: translateY(-8px); }
 }
 
+/* --- CINEMATIC IN-GAME CUTSCENE --- */
+.cutscene-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.96);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    animation: fadeInCutscene 0.4s ease-out;
+}
+
+@keyframes fadeInCutscene {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.cutscene-cinema-box {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 16 / 9.2;
+    max-height: 85vh;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 3px solid #f1c40f;
+    box-shadow: 0 0 35px rgba(241, 196, 15, 0.5), 0 10px 40px rgba(0,0,0,0.85);
+    background: #000;
+}
+
+.btn-skip-cutscene {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(20, 25, 35, 0.75);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.btn-skip-cutscene:hover {
+    background: rgba(241, 196, 15, 0.9);
+    color: #111;
+    border-color: #f1c40f;
+    transform: scale(1.05);
+}
+
+
