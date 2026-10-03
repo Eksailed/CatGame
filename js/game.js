@@ -2193,14 +2193,14 @@ class GameScene extends Phaser.Scene {
         const roll = Math.random();
         let type = 'drop_xp';
 
-        if (roll < 0.16) {
+        if (roll < 0.18) {
             type = 'drop_coin';
-        } else if (roll < 0.28) {
+        } else if (roll < 0.30) {
             type = 'drop_heal';
-        } else if (roll < 0.32) {
+        } else if (roll < 0.33) {
             type = 'drop_clock';
-        } else if (roll < 0.35) {
-            type = 'drop_bomb';
+        } else if (roll < 0.34) {
+            type = 'drop_bomb'; // Reduced from 3% to 1% (rare drop)
         }
 
         const drop = this.drops.create(x, y, type);
@@ -2291,22 +2291,49 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.shake(250, 0.02);
         if (window.soundManager) window.soundManager.playExplosion();
 
-        // Epicenter explosion FX
+        const blastRadius = 165;
+        const centerX = (bx !== null) ? bx : this.player.x;
+        const centerY = (by !== null) ? by : this.player.y;
+
+        // Epicenter explosion FX and shockwave ring showing local area
         if (bx !== null && by !== null) {
             const exp = this.add.sprite(bx, by, 'fx_mine_explosion');
             exp.setDepth(16);
-            exp.setScale(1.8);
+            exp.setScale(2.0);
             exp.play('mine_explosion');
             exp.on('animationcomplete', () => exp.destroy());
+
+            const shock = this.add.graphics();
+            shock.setDepth(15);
+            shock.lineStyle(3, 0xff5722, 0.85);
+            shock.strokeCircle(bx, by, blastRadius);
+            this.tweens.add({
+                targets: shock,
+                alpha: 0,
+                duration: 260,
+                onComplete: () => shock.destroy()
+            });
         }
 
-        const bounds = this.cameras.main.worldView;
+        // Damage enemies in small blast area
         this.enemies.getChildren().forEach(e => {
             if (!e.active) return;
-            if (Phaser.Geom.Rectangle.Contains(bounds, e.x, e.y)) {
-                this.damageEnemy(e, 999);
+            const dist = Phaser.Math.Distance.Between(centerX, centerY, e.x, e.y);
+            if (dist <= blastRadius) {
+                const pushAng = Phaser.Math.Angle.Between(centerX, centerY, e.x, e.y);
+                e.x += Math.cos(pushAng) * 45;
+                e.y += Math.sin(pushAng) * 45;
+                this.damageEnemy(e, 500);
             }
         });
+
+        // Bomb self-damage in blast area
+        if (this.player && this.player.active) {
+            const distToPlayer = Phaser.Math.Distance.Between(centerX, centerY, this.player.x, this.player.y);
+            if (distToPlayer <= blastRadius * 0.7) {
+                this.applyPlayerDamage(15, centerX, centerY, false, true);
+            }
+        }
 
         this.showDamageText(this.player.x, this.player.y - 45, '💥 БОМБА! 💥', '#e74c3c');
     }
