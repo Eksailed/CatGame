@@ -18,6 +18,8 @@ class BootScene extends Phaser.Scene {
         this.load.image('helipad_zone', 'assets/helipad_zone.png' + V);
         this.load.image('cat_chopper', 'assets/cat_chopper.png' + V);
         this.load.image('chopper_rotor', 'assets/chopper_rotor.png' + V);
+        this.load.spritesheet('cat_chopper_fly', 'assets/cat_chopper_fly.png' + V, { frameWidth: 128, frameHeight: 104 });
+        this.load.spritesheet('fx_chopper_downwash', 'assets/fx_chopper_downwash.png' + V, { frameWidth: 96, frameHeight: 96 });
         this.load.image('cat_barsik', 'assets/cat_barsik.png' + V);
         this.load.image('cat_murzik', 'assets/cat_murzik.png' + V);
         this.load.image('cat_pukhlyash', 'assets/cat_pukhlyash.png' + V);
@@ -180,6 +182,8 @@ class GameScene extends Phaser.Scene {
         this.helipad = null;
         this.chopper = null;
         this.chopperRotor = null;
+        this.chopperShadow = null;
+        this.chopperDownwash = null;
         this.evacIndicator = null;
 
         // Joystick
@@ -289,6 +293,20 @@ class GameScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('fx_mine_explosion', { start: 0, end: 4 }),
             frameRate: 16,
             repeat: 0
+        });
+
+        // Helicopter Evacuation Animations
+        this.anims.create({
+            key: 'chopper_flight',
+            frames: this.anims.generateFrameNumbers('cat_chopper_fly', { start: 0, end: 7 }),
+            frameRate: 14,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'chopper_downwash_anim',
+            frames: this.anims.generateFrameNumbers('fx_chopper_downwash', { start: 0, end: 7 }),
+            frameRate: 14,
+            repeat: -1
         });
 
         // 1. Arena Bounds & Background
@@ -2731,67 +2749,123 @@ class GameScene extends Phaser.Scene {
 
         if (window.soundManager) window.soundManager.playChopperRotor();
 
-        // Spawn rescue helicopter descending from above
-        this.chopper = this.add.image(targetX, targetY - 500, 'cat_chopper');
+        // 1. Ground Shadow (Grows and darkens on helipad as chopper descends)
+        this.chopperShadow = this.add.ellipse(targetX - 5, targetY + 36, 92, 28, 0x000000, 0.1);
+        this.chopperShadow.setDepth(2);
+
+        // 2. Downwash Wind Vortex Ring on helipad
+        this.chopperDownwash = this.add.sprite(targetX - 5, targetY + 30, 'fx_chopper_downwash');
+        this.chopperDownwash.setDepth(3);
+        this.chopperDownwash.setScale(1.4);
+        this.chopperDownwash.setAlpha(0.15);
+        this.chopperDownwash.play('chopper_downwash_anim');
+
+        // 3. Fully Animated Rescue Helicopter Sprite
+        this.chopper = this.add.sprite(targetX, targetY - 550, 'cat_chopper_fly');
         this.chopper.setDepth(15);
-        this.chopper.setScale(1.3);
+        this.chopper.setScale(1.25);
+        this.chopper.play('chopper_flight');
 
-        this.chopperRotor = this.add.image(targetX, targetY - 500 - 22, 'chopper_rotor');
-        this.chopperRotor.setDepth(16);
-        this.chopperRotor.setScale(1.4);
-
-        // Rotating rotor animation
-        const rotorEvent = this.time.addEvent({
-            delay: 16,
-            callback: () => {
-                if (this.chopperRotor && this.chopperRotor.active) {
-                    this.chopperRotor.angle += 35;
-                }
-            },
-            loop: true
+        // Subtle hovering tilt & bob
+        const hoverTween = this.tweens.add({
+            targets: this.chopper,
+            angle: { from: -1.5, to: 1.5 },
+            yoyo: true,
+            repeat: -1,
+            duration: 800,
+            ease: 'Sine.easeInOut'
         });
 
-        // 1. Chopper descends smoothly down to the pad
+        // Descent tween
         this.tweens.add({
-            targets: [this.chopper, this.chopperRotor],
-            y: `+=500`,
-            duration: 1500,
+            targets: this.chopper,
+            y: targetY,
+            duration: 1800,
             ease: 'Power2.easeOut',
+            onUpdate: (tween) => {
+                const prog = tween.progress;
+                if (this.chopperShadow && this.chopperShadow.active) {
+                    this.chopperShadow.setAlpha(0.1 + prog * 0.55);
+                    this.chopperShadow.setScale(0.5 + prog * 0.6);
+                }
+                if (this.chopperDownwash && this.chopperDownwash.active) {
+                    this.chopperDownwash.setAlpha(0.15 + prog * 0.75);
+                    this.chopperDownwash.setScale(1.4 + prog * 0.4);
+                }
+            },
             onComplete: () => {
                 if (window.soundManager) window.soundManager.playMeow();
-                // 2. Player cat hops into the helicopter!
+                this.cameras.main.shake(300, 0.006);
+
+                // Push enemies away from helipad landing zone
+                this.enemies.getChildren().forEach(e => {
+                    if (!e.active) return;
+                    const d = Phaser.Math.Distance.Between(targetX, targetY, e.x, e.y);
+                    if (d < 240) {
+                        const pushAng = Phaser.Math.Angle.Between(targetX, targetY, e.x, e.y);
+                        e.x += Math.cos(pushAng) * 120;
+                        e.y += Math.sin(pushAng) * 120;
+                        this.damageEnemy(e, 80);
+                    }
+                });
+
+                // Cat hops onto the ladder and into the chopper!
                 this.tweens.add({
                     targets: this.player,
-                    x: targetX,
-                    y: targetY + 10,
-                    scaleX: 0.5,
-                    scaleY: 0.5,
-                    duration: 600,
+                    x: targetX - 10,
+                    y: targetY + 12,
+                    scaleX: 0.4,
+                    scaleY: 0.4,
+                    duration: 650,
                     ease: 'Back.easeIn',
                     onComplete: () => {
-                        this.player.setAlpha(0); // Cat entered chopper!
+                        this.player.setAlpha(0);
                         if (this.playerShadow) this.playerShadow.setAlpha(0);
 
-                        // 3. Helicopter takes off with victory celebration!
+                        // Helicopter climbs and flies away
                         this.time.delayedCall(500, () => {
                             if (window.soundManager) {
                                 window.soundManager.playChopperRotor();
                                 window.soundManager.playVictoryFanfare();
                             }
 
-                            // Flash & triumphant take off
+                            // Flash & triumphant takeoff
                             this.cameras.main.flash(600, 255, 235, 100);
 
+                            // Fade out shadow and downwash
+                            if (this.chopperShadow) {
+                                this.tweens.add({
+                                    targets: this.chopperShadow,
+                                    alpha: 0,
+                                    scaleX: 0.2,
+                                    scaleY: 0.2,
+                                    duration: 1000
+                                });
+                            }
+                            if (this.chopperDownwash) {
+                                this.tweens.add({
+                                    targets: this.chopperDownwash,
+                                    alpha: 0,
+                                    duration: 800,
+                                    onComplete: () => {
+                                        if (this.chopperDownwash) this.chopperDownwash.destroy();
+                                    }
+                                });
+                            }
+
+                            // Forward tilt for takeoff
+                            hoverTween.stop();
+                            this.chopper.angle = -6;
+
                             this.tweens.add({
-                                targets: [this.chopper, this.chopperRotor],
-                                y: `-=700`,
-                                x: `+=150`,
-                                scaleX: 1.5,
-                                scaleY: 1.5,
+                                targets: this.chopper,
+                                y: targetY - 800,
+                                x: targetX + 220,
+                                scaleX: 1.45,
+                                scaleY: 1.45,
                                 duration: 1800,
                                 ease: 'Power2.easeIn',
                                 onComplete: () => {
-                                    rotorEvent.remove();
                                     this.triggerVictory();
                                 }
                             });
@@ -2830,6 +2904,14 @@ class GameScene extends Phaser.Scene {
         if (this.chopperRotor) {
             this.chopperRotor.destroy();
             this.chopperRotor = null;
+        }
+        if (this.chopperShadow) {
+            this.chopperShadow.destroy();
+            this.chopperShadow = null;
+        }
+        if (this.chopperDownwash) {
+            this.chopperDownwash.destroy();
+            this.chopperDownwash = null;
         }
 
         this.resumeGame();
