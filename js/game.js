@@ -6,9 +6,13 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        const V = '?v=3.6';
-        // Environment & Heroes
+        const V = '?v=3.7';
+        // Environment & Map Elements
         this.load.image('tile_floor', 'assets/tile_floor.png' + V);
+        this.load.image('map_plaza', 'assets/map_plaza.png' + V);
+        this.load.image('boundary_wall', 'assets/boundary_wall.png' + V);
+        this.load.image('decal_flowers', 'assets/decal_flowers.png' + V);
+        this.load.image('decal_manhole', 'assets/decal_manhole.png' + V);
         this.load.image('cat_barsik', 'assets/cat_barsik.png' + V);
         this.load.image('cat_murzik', 'assets/cat_murzik.png' + V);
         this.load.image('cat_pukhlyash', 'assets/cat_pukhlyash.png' + V);
@@ -26,10 +30,15 @@ class BootScene extends Phaser.Scene {
         this.load.spritesheet('cat_pukhlyash_idle', 'assets/cat_pukhlyash_idle.png' + V, { frameWidth: 64, frameHeight: 64 });
         this.load.image('cat_pukhlyash_hurt', 'assets/cat_pukhlyash_hurt.png' + V);
         
-        // Obstacles
+        // Obstacles & Interactive World Objects
         this.load.image('obstacle_crate', 'assets/obstacle_crate.png' + V);
         this.load.image('obstacle_rock', 'assets/obstacle_rock.png' + V);
         this.load.image('obstacle_bush', 'assets/obstacle_bush.png' + V);
+        this.load.image('obstacle_barrel', 'assets/obstacle_barrel.png' + V);
+        this.load.image('obstacle_wall_h', 'assets/obstacle_wall_h.png' + V);
+        this.load.image('obstacle_wall_v', 'assets/obstacle_wall_v.png' + V);
+        this.load.image('obstacle_fence', 'assets/obstacle_fence.png' + V);
+        this.load.image('obstacle_monument', 'assets/obstacle_monument.png' + V);
 
         // Enemies & Bosses (Static fallback + Animated Spritesheets)
         this.load.image('enemy_mouse', 'assets/enemy_mouse.png' + V);
@@ -272,11 +281,15 @@ class GameScene extends Phaser.Scene {
         const tile = this.add.tileSprite(this.arenaSize / 2, this.arenaSize / 2, this.arenaSize, this.arenaSize, 'tile_floor');
         tile.setDepth(0);
 
-        // Red fence border
-        const boundsGraphics = this.add.graphics();
-        boundsGraphics.lineStyle(14, 0xc0392b, 0.85);
-        boundsGraphics.strokeRect(7, 7, this.arenaSize - 14, this.arenaSize - 14);
-        boundsGraphics.setDepth(1);
+        // Central Royal Cat Sanctuary Plaza
+        const plaza = this.add.image(this.arenaSize / 2, this.arenaSize / 2, 'map_plaza');
+        plaza.setDepth(1);
+
+        // Ground Decals (Flower patches, ancient stone manholes)
+        this.setupMapDecals();
+
+        // Fortress Boundary Walls along the perimeter
+        this.setupBoundaryWalls();
 
         // 2. Physics Groups
         this.enemies = this.physics.add.group();
@@ -287,12 +300,12 @@ class GameScene extends Phaser.Scene {
         this.obstacles = this.physics.add.staticGroup();
         this.bushes = this.physics.add.staticGroup();
 
-        // 3. Generate Procedural Obstacles
+        // 3. Generate Procedural Obstacles & Landmarks
         this.generateMapObstacles();
 
-        // 4. Player Creation
+        // 4. Player Creation (Spawned in front of the Cat Guardian Monument)
         const startX = this.arenaSize / 2;
-        const startY = this.arenaSize / 2;
+        const startY = this.arenaSize / 2 + 75;
         this.player = this.physics.add.sprite(startX, startY, `cat_${this.selectedHeroId}_idle`);
         this.player.play(`${this.selectedHeroId}_idle`);
         this.player.hurtTimer = 0;
@@ -379,40 +392,182 @@ class GameScene extends Phaser.Scene {
         if (window.soundManager) window.soundManager.playMeow();
     }
 
+    setupBoundaryWalls() {
+        const sz = this.arenaSize;
+        const wallThickness = 18;
+
+        // Top & Bottom fortress walls
+        for (let x = 32; x < sz; x += 64) {
+            const topW = this.add.image(x, wallThickness, 'boundary_wall');
+            topW.setDepth(2);
+            const botW = this.add.image(x, sz - wallThickness, 'boundary_wall');
+            botW.setDepth(2);
+        }
+        // Left & Right fortress walls (rotated 90 deg)
+        for (let y = 32; y < sz; y += 64) {
+            const leftW = this.add.image(wallThickness, y, 'boundary_wall');
+            leftW.setAngle(90);
+            leftW.setDepth(2);
+            const rightW = this.add.image(sz - wallThickness, y, 'boundary_wall');
+            rightW.setAngle(90);
+            rightW.setDepth(2);
+        }
+
+        // Decorative stone boundary line
+        const boundsGraphics = this.add.graphics();
+        boundsGraphics.lineStyle(6, 0x8a7258, 0.9);
+        boundsGraphics.strokeRect(36, 36, sz - 72, sz - 72);
+        boundsGraphics.setDepth(3);
+    }
+
+    setupMapDecals() {
+        const sz = this.arenaSize;
+        const center = sz / 2;
+
+        // Spread flower patches
+        for (let i = 0; i < 28; i++) {
+            const fx = Phaser.Math.Between(80, sz - 80);
+            const fy = Phaser.Math.Between(80, sz - 80);
+            if (Phaser.Math.Distance.Between(fx, fy, center, center) < 230) continue;
+            const decal = this.add.image(fx, fy, 'decal_flowers');
+            decal.setDepth(1);
+            decal.setAlpha(0.85);
+            decal.setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2));
+        }
+
+        // Spread manholes
+        for (let i = 0; i < 16; i++) {
+            const mx = Phaser.Math.Between(100, sz - 100);
+            const my = Phaser.Math.Between(100, sz - 100);
+            if (Phaser.Math.Distance.Between(mx, my, center, center) < 230) continue;
+            const decal = this.add.image(mx, my, 'decal_manhole');
+            decal.setDepth(1);
+            decal.setAlpha(0.9);
+        }
+    }
+
     generateMapObstacles() {
         const center = this.arenaSize / 2;
-        const totalClusters = 45;
+        const sz = this.arenaSize;
 
-        for (let i = 0; i < totalClusters; i++) {
-            const rx = Phaser.Math.Between(150, this.arenaSize - 150);
-            const ry = Phaser.Math.Between(150, this.arenaSize - 150);
+        // 1. Central Sanctuary Monument (Grand Cat Guardian Fountain)
+        const monument = this.obstacles.create(center, center - 10, 'obstacle_monument');
+        monument.setDepth(4);
+        monument.isMonument = true;
+        monument.body.setSize(58, 58);
+        monument.refreshBody();
 
-            // Keep spawn safe zone clear
-            if (Phaser.Math.Distance.Between(rx, ry, center, center) < 280) continue;
+        // Helper to add obstacle
+        const addObs = (x, y, key, opts = {}) => {
+            if (Phaser.Math.Distance.Between(x, y, center, center) < 230) return null;
+            if (x < 90 || x > sz - 90 || y < 90 || y > sz - 90) return null;
 
-            const typeRoll = Math.random();
+            const obs = (opts.isBush ? this.bushes : this.obstacles).create(x, y, key);
+            obs.setDepth(opts.isBush ? 3 : 4);
+            if (opts.isCrate) {
+                obs.isCrate = true;
+                obs.hp = 30;
+                obs.body.setSize(40, 40);
+            } else if (opts.isBarrel) {
+                obs.isBarrel = true;
+                obs.hp = 35;
+                obs.body.setSize(38, 38);
+            } else if (opts.isWallH) {
+                obs.isWall = true;
+                obs.body.setSize(76, 28);
+            } else if (opts.isWallV) {
+                obs.isWall = true;
+                obs.body.setSize(28, 76);
+            } else if (opts.isFence) {
+                obs.isFence = true;
+                obs.body.setSize(60, 20);
+            } else if (opts.isRock) {
+                obs.isRock = true;
+                obs.body.setSize(38, 38);
+            } else if (opts.isBush) {
+                obs.body.setSize(42, 42);
+            }
+            obs.refreshBody();
+            return obs;
+        };
 
-            if (typeRoll < 0.45) {
-                // Wooden Crate cluster (destructible)
-                const crate = this.obstacles.create(rx, ry, 'obstacle_crate');
-                crate.setDepth(4);
-                crate.isCrate = true;
-                crate.hp = 30;
-                crate.body.setSize(40, 40);
-                crate.refreshBody();
-            } else if (typeRoll < 0.75) {
-                // Mossy Stone Boulder (solid indestructible cover)
-                const rock = this.obstacles.create(rx, ry, 'obstacle_rock');
-                rock.setDepth(4);
-                rock.isRock = true;
-                rock.body.setSize(38, 38);
-                rock.refreshBody();
+        // 2. Structured Themed Quadrants
+        // NW Quadrant: "The Royal Gardens" (Hedges, garden stone walls, rocks)
+        for (let i = 0; i < 7; i++) {
+            const cx = Phaser.Math.Between(180, center - 240);
+            const cy = Phaser.Math.Between(180, center - 240);
+            addObs(cx, cy, 'obstacle_bush', { isBush: true });
+            addObs(cx + 44, cy, 'obstacle_bush', { isBush: true });
+            if (Math.random() < 0.6) {
+                addObs(cx + 88, cy, 'obstacle_bush', { isBush: true });
+            }
+            if (Math.random() < 0.5) {
+                addObs(cx, cy + 60, 'obstacle_wall_h', { isWallH: true });
             } else {
-                // Berry Bush (walk-through slow zone)
-                const bush = this.bushes.create(rx, ry, 'obstacle_bush');
-                bush.setDepth(3);
-                bush.body.setSize(42, 42);
-                bush.refreshBody();
+                addObs(cx - 30, cy + 50, 'obstacle_rock', { isRock: true });
+            }
+        }
+
+        // NE Quadrant: "Fish Port & Warehouse" (Brick walls, fish barrels, crates)
+        for (let i = 0; i < 7; i++) {
+            const cx = Phaser.Math.Between(center + 240, sz - 180);
+            const cy = Phaser.Math.Between(180, center - 240);
+            if (Math.random() < 0.5) {
+                addObs(cx, cy, 'obstacle_wall_h', { isWallH: true });
+                addObs(cx - 30, cy + 36, 'obstacle_barrel', { isBarrel: true });
+                addObs(cx + 30, cy + 36, 'obstacle_crate', { isCrate: true });
+            } else {
+                addObs(cx, cy, 'obstacle_wall_v', { isWallV: true });
+                addObs(cx + 34, cy - 20, 'obstacle_barrel', { isBarrel: true });
+                addObs(cx + 34, cy + 24, 'obstacle_barrel', { isBarrel: true });
+            }
+        }
+
+        // SW Quadrant: "Ancient Catacombs" (Brick walls, boulders, secret caches)
+        for (let i = 0; i < 7; i++) {
+            const cx = Phaser.Math.Between(180, center - 240);
+            const cy = Phaser.Math.Between(center + 240, sz - 180);
+            if (Math.random() < 0.5) {
+                addObs(cx, cy, 'obstacle_wall_v', { isWallV: true });
+                addObs(cx + 48, cy, 'obstacle_rock', { isRock: true });
+            } else {
+                addObs(cx, cy, 'obstacle_wall_h', { isWallH: true });
+                addObs(cx, cy + 44, 'obstacle_rock', { isRock: true });
+                addObs(cx + 44, cy + 44, 'obstacle_crate', { isCrate: true });
+            }
+        }
+
+        // SE Quadrant: "Village Farmstead" (Wooden fences, hay/supply crates, barrels)
+        for (let i = 0; i < 7; i++) {
+            const cx = Phaser.Math.Between(center + 240, sz - 180);
+            const cy = Phaser.Math.Between(center + 240, sz - 180);
+            addObs(cx, cy, 'obstacle_fence', { isFence: true });
+            if (Math.random() < 0.6) {
+                addObs(cx + 56, cy, 'obstacle_fence', { isFence: true });
+            }
+            if (Math.random() < 0.5) {
+                addObs(cx + 20, cy + 38, 'obstacle_crate', { isCrate: true });
+            } else {
+                addObs(cx + 20, cy + 38, 'obstacle_barrel', { isBarrel: true });
+            }
+            if (Math.random() < 0.4) {
+                addObs(cx - 36, cy + 30, 'obstacle_bush', { isBush: true });
+            }
+        }
+
+        // 3. Random Scattered Points of Interest across the map
+        for (let i = 0; i < 22; i++) {
+            const rx = Phaser.Math.Between(150, sz - 150);
+            const ry = Phaser.Math.Between(150, sz - 150);
+            const roll = Math.random();
+            if (roll < 0.25) {
+                addObs(rx, ry, 'obstacle_barrel', { isBarrel: true });
+            } else if (roll < 0.5) {
+                addObs(rx, ry, 'obstacle_crate', { isCrate: true });
+            } else if (roll < 0.75) {
+                addObs(rx, ry, 'obstacle_rock', { isRock: true });
+            } else {
+                addObs(rx, ry, 'obstacle_bush', { isBush: true });
             }
         }
     }
@@ -425,25 +580,41 @@ class GameScene extends Phaser.Scene {
     handleProjectileObstacleHit(proj, obstacle) {
         if (!proj.active || !obstacle.active) return;
 
-        if (obstacle.isCrate) {
+        if (obstacle.isCrate || obstacle.isBarrel) {
             obstacle.hp -= (proj.damage || 20);
-            // Splinter shake
-            obstacle.setTint(0xff9944);
+            // Splinter shake & hit tint
+            obstacle.setTint(obstacle.isBarrel ? 0x88ddff : 0xff9944);
             this.time.delayedCall(80, () => {
                 if (obstacle && obstacle.active) obstacle.clearTint();
             });
 
             if (obstacle.hp <= 0) {
                 if (window.soundManager) window.soundManager.playWoodBreak();
-                // Spawn drop from crate
-                const dropRoll = Math.random();
-                if (dropRoll < 0.35) {
-                    this.spawnDrop(obstacle.x, obstacle.y, false);
+                if (obstacle.isBarrel) {
+                    const barrelRoll = Math.random();
+                    if (barrelRoll < 0.40) {
+                        this.spawnDrop(obstacle.x, obstacle.y, true); // Fish heal drop
+                    } else if (barrelRoll < 0.75) {
+                        const coin = this.drops.create(obstacle.x, obstacle.y, 'drop_coin');
+                        coin.setDepth(5);
+                        coin.dropType = 'drop_coin';
+                        coin.body.setSize(20, 20);
+                    } else {
+                        const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
+                        gem.setDepth(5);
+                        gem.dropType = 'drop_xp';
+                        gem.body.setSize(20, 20);
+                    }
                 } else {
-                    const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
-                    gem.setDepth(5);
-                    gem.dropType = 'drop_xp';
-                    gem.body.setSize(20, 20);
+                    const dropRoll = Math.random();
+                    if (dropRoll < 0.35) {
+                        this.spawnDrop(obstacle.x, obstacle.y, false);
+                    } else {
+                        const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
+                        gem.setDepth(5);
+                        gem.dropType = 'drop_xp';
+                        gem.body.setSize(20, 20);
+                    }
                 }
                 obstacle.destroy();
             }
