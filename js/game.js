@@ -1573,6 +1573,15 @@ class GameScene extends Phaser.Scene {
                         this.damageEnemy(e, p.damage);
                     }
                 });
+
+                // Self-damage: Player takes toxic damage when standing in the valerian puddle!
+                if (this.player && this.player.active) {
+                    const distToPlayer = Phaser.Math.Distance.Between(p.x, p.y, this.player.x, this.player.y);
+                    if (distToPlayer <= p.radius) {
+                        const puddleSelfDmg = p.isEvo ? 14 : 8;
+                        this.applyPlayerDamage(puddleSelfDmg, p.x, p.y, true, false);
+                    }
+                }
             }
         }
     }
@@ -1655,6 +1664,16 @@ class GameScene extends Phaser.Scene {
                 this.damageEnemy(e, dmg);
             }
         });
+
+        // Self-damage: Player caught in the bomb explosion radius takes damage & knockback!
+        if (this.player && this.player.active) {
+            const distToPlayer = Phaser.Math.Distance.Between(mx, my, this.player.x, this.player.y);
+            if (distToPlayer <= blastRadius) {
+                const proximityFactor = 1 - (distToPlayer / blastRadius) * 0.4;
+                const bombSelfDmg = Math.round((dmg * 0.45) * proximityFactor);
+                this.applyPlayerDamage(Math.max(12, bombSelfDmg), mx, my, false, true);
+            }
+        }
     }
 
     triggerStaticFur(level) {
@@ -1896,7 +1915,7 @@ class GameScene extends Phaser.Scene {
         } else if (type === 'drop_clock') {
             this.triggerFreeze(4500);
         } else if (type === 'drop_bomb') {
-            this.triggerScreenBomb();
+            this.triggerScreenBomb(drop.x, drop.y);
         }
 
         if (window.uiManager) window.uiManager.updateHUD();
@@ -1921,9 +1940,26 @@ class GameScene extends Phaser.Scene {
         this.showDamageText(this.player.x, this.player.y - 45, '❄️ ЗАМОРОЗКА! ❄️', '#3498db');
     }
 
-    triggerScreenBomb() {
-        this.cameras.main.shake(250, 0.015);
+    triggerScreenBomb(bx = null, by = null) {
+        this.cameras.main.shake(250, 0.02);
         if (window.soundManager) window.soundManager.playExplosion();
+
+        // Epicenter explosion FX & blast radius damage
+        if (bx !== null && by !== null) {
+            const exp = this.add.sprite(bx, by, 'fx_mine_explosion');
+            exp.setDepth(16);
+            exp.setScale(1.8);
+            exp.play('mine_explosion');
+            exp.on('animationcomplete', () => exp.destroy());
+
+            // Player caught in the bomb explosion radius takes damage!
+            if (this.player && this.player.active) {
+                const distToPlayer = Phaser.Math.Distance.Between(bx, by, this.player.x, this.player.y);
+                if (distToPlayer <= 95) {
+                    this.applyPlayerDamage(20, bx, by, false, true);
+                }
+            }
+        }
 
         const bounds = this.cameras.main.worldView;
         this.enemies.getChildren().forEach(e => {
