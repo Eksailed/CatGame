@@ -218,7 +218,14 @@
             <div class="modal-content victory-modal-content">
                 <div class="victory-crown-badge">👑 🚁 🐾</div>
                 <h2 class="modal-title" style="color: #2ecc71; text-shadow: 0 0 16px rgba(46, 204, 113, 0.7);">МИССИЯ ВЫПОЛНЕНА!</h2>
-                <p class="victory-subtitle" style="color: #f1c40f; font-weight: bold; margin-bottom: 12px; font-size: 1.05rem;">БОРТ «9 ЖИЗНЕЙ» ЭВАКУИРОВАЛ КОТИКА!</p>
+                <p class="victory-subtitle" style="color: #f1c40f; font-weight: bold; margin-bottom: 8px; font-size: 1.05rem;">БОРТ «9 ЖИЗНЕЙ» ЭВАКУИРОВАЛ КОТИКА!</p>
+
+                <!-- Mini Video Ending Cutscene -->
+                <div class="victory-video-container" style="margin: 8px 0 12px 0; border-radius: 10px; overflow: hidden; border: 2px solid #f1c40f; box-shadow: 0 4px 18px rgba(0,0,0,0.6); background: #000;">
+                    <video id="victory-video" autoplay loop muted playsinline poster="assets/cat_evacuation_ending.gif" style="width: 100%; max-height: 160px; display: block; object-fit: cover;">
+                        <source src="assets/cat_evacuation_ending.mp4" type="video/mp4">
+                    </video>
+                </div>
                 <div class="gameover-stats">
                     <div class="gameover-stat-row">
                         <span data-i18n="survivedTime">Время операции:</span>

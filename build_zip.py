@@ -3,7 +3,7 @@ import zipfile
 
 ZIP_NAME = "game.zip"
 
-INCLUDE_EXTS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".json"}
+INCLUDE_EXTS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".json", ".mp4", ".gif"}
 INCLUDE_FILES = {"index.html", "style.css", "promo_banner.jpg"}
 INCLUDE_DIRS = {"lib", "js", "assets"}
 

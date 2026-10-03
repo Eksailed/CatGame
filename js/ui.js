@@ -916,11 +916,19 @@ class UIManager {
         }
 
         this.updateQuestBadge();
+
+        const vid = document.getElementById('victory-video');
+        if (vid) {
+            vid.currentTime = 0;
+            vid.play().catch(() => {});
+        }
     }
 
     hideVictoryModal() {
         const modal = document.getElementById('modal-victory');
         if (modal) modal.classList.add('hidden');
+        const vid = document.getElementById('victory-video');
+        if (vid) vid.pause();
     }
 
     exitToMenu() {
