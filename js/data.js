@@ -51,11 +51,11 @@ const I18N = {
 
         // Heroes
         hero_barsik: "Барсик",
-        hero_barsik_desc: "Храбрый рыжий кот. Оружие: Рыбий бумеранг. ⚠️ ХАРДКОР: 95 HP, враги бегут быстрее!",
+        hero_barsik_desc: "Храбрый рыжий кот. Оружие: Рыбий бумеранг. ⚠️ ХАРДКОР: 95 HP, враги бегут быстрее! Эвакуация: 10 мин.",
         hero_murzik: "Мурзик",
-        hero_murzik_desc: "Быстрый ниндзя. Оружие: Клубок ниток. +20% скорости.",
+        hero_murzik_desc: "Быстрый ниндзя. Оружие: Клубок ниток. +20% скорости. Эвакуация: 15 мин.",
         hero_pukhlyash: "Пухляш",
-        hero_pukhlyash_desc: "Пушистый крепыш. Оружие: Мурчащая аура. +50% HP.",
+        hero_pukhlyash_desc: "Пушистый крепыш. Оружие: Мурчащая аура. +50% HP. Эвакуация: 20 мин.",
 
         // Skills
         skill_fish_name: "Рыбный бумеранг",
@@ -176,11 +176,11 @@ const I18N = {
         heroStatsSpeed: "Speed",
 
         hero_barsik: "Barsik",
-        hero_barsik_desc: "Brave ginger warrior. Weapon: Fish Boomerang. ⚠️ HARDCORE: 95 HP, faster enemy waves!",
+        hero_barsik_desc: "Brave ginger warrior. Weapon: Fish Boomerang. ⚠️ HARDCORE: 95 HP, faster enemy waves! Evac: 10 min.",
         hero_murzik: "Murzik",
-        hero_murzik_desc: "Agile ninja cat. Weapon: Yarn Ball. +20% Speed.",
+        hero_murzik_desc: "Agile ninja cat. Weapon: Yarn Ball. +20% Speed. Evac: 15 min.",
         hero_pukhlyash: "Chonky",
-        hero_pukhlyash_desc: "Fluffy tank. Weapon: Purr Aura. +50% HP.",
+        hero_pukhlyash_desc: "Fluffy tank. Weapon: Purr Aura. +50% HP. Evac: 20 min.",
 
         skill_fish_name: "Fish Boomerang",
         skill_fish_desc: "Flies forward, piercing enemies and returning back.",
@@ -259,7 +259,8 @@ const CHARACTERS = [
         speed: 195,
         startingWeapon: "fish",
         price: 0,
-        unlocked: true
+        unlocked: true,
+        evacTargetSeconds: 600 // 10 minutes
     },
     {
         id: "murzik",
@@ -270,7 +271,8 @@ const CHARACTERS = [
         speed: 265,
         startingWeapon: "yarn",
         price: 250,
-        unlocked: false
+        unlocked: false,
+        evacTargetSeconds: 900 // 15 minutes
     },
     {
         id: "pukhlyash",
@@ -281,7 +283,8 @@ const CHARACTERS = [
         speed: 185,
         startingWeapon: "aura",
         price: 500,
-        unlocked: false
+        unlocked: false,
+        evacTargetSeconds: 1200 // 20 minutes
     }
 ];
 

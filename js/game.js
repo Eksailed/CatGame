@@ -175,6 +175,7 @@ class GameScene extends Phaser.Scene {
         this.addOrUpgradeSkill(this.heroConfig.startingWeapon);
 
         // Evacuation & Victory Progression
+        this.evacTargetTime = this.heroConfig.evacTargetSeconds || 600;
         this.evacTriggered = false;
         this.evacCompleted = false;
         this.isEndlessMode = false;
@@ -185,6 +186,7 @@ class GameScene extends Phaser.Scene {
         this.chopperShadow = null;
         this.chopperDownwash = null;
         this.evacIndicator = null;
+        this.spawnedBossTimes = new Set();
 
         // Joystick
         this.joystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, moveX: 0, moveY: 0 };
@@ -910,8 +912,10 @@ class GameScene extends Phaser.Scene {
             if (window.uiManager) window.uiManager.hideBossBar();
         }
 
-        // Evacuation Progression: Helicopter rescue triggers at 5:00 (300 seconds)
-        if (this.survivalTime >= 300 && !this.evacTriggered && !this.isEndlessMode) {
+        // Evacuation Progression: Helicopter rescue triggers based on hero target time
+        // Barsik: 10m (600s), Murzik: 15m (900s), Pukhlyash: 20m (1200s)
+        const targetTime = this.evacTargetTime || 600;
+        if (this.survivalTime >= targetTime && !this.evacTriggered && !this.isEndlessMode) {
             this.startEvacuationSequence();
         }
 
@@ -2326,16 +2330,6 @@ class GameScene extends Phaser.Scene {
     }
 
     onLevelUp() {
-        // [ВРЕМЕННО ДЛЯ ТЕСТА]: Запуск эвакуации по достижении 2 уровня
-        if (this.level >= 2 && !this.evacTriggered) {
-            this.startEvacuationSequence();
-            this.evacCountdown = 5; // Быстрый тест: 5 секунд до посадки
-            const countEl = document.getElementById('evac-countdown');
-            if (countEl) countEl.innerText = '5';
-            if (window.uiManager) window.uiManager.updateHUD();
-            return;
-        }
-
         if (window.soundManager) window.soundManager.playLevelUp();
         this.pauseGame();
         if (window.uiManager) {
@@ -2400,16 +2394,18 @@ class GameScene extends Phaser.Scene {
         let canSpawnPigeon = t >= 55;
         let canSpawnCucumber = t >= 80;
         
-        // Boss 1: Vacuum at 2:00
-        if (t >= 120 && t < 125 && !this.activeBoss && !this.vacuumSpawned) {
-            this.vacuumSpawned = true;
-            this.spawnSpecificEnemy('boss_vacuum');
-        }
-
-        // Boss 2: Bulldozer at 4:30
-        if (t >= 270 && t < 275 && !this.activeBoss && !this.dozerSpawned) {
-            this.dozerSpawned = true;
-            this.spawnSpecificEnemy('boss_dozer');
+        // Boss Spawns: Scheduled checkpoints and periodic elite encounters
+        if (!this.activeBoss) {
+            const bossIntervals = [120, 270, 420, 570, 720, 870, 1020, 1170];
+            for (let bTime of bossIntervals) {
+                if (t >= bTime && t < bTime + 5 && (!this.spawnedBossTimes || !this.spawnedBossTimes.has(bTime))) {
+                    if (!this.spawnedBossTimes) this.spawnedBossTimes = new Set();
+                    this.spawnedBossTimes.add(bTime);
+                    const bType = (bTime === 120 || bTime === 420 || bTime === 720 || bTime === 1020) ? 'boss_vacuum' : 'boss_dozer';
+                    this.spawnSpecificEnemy(bType);
+                    break;
+                }
+            }
         }
 
         for (let i = 0; i < count; i++) {

@@ -377,6 +377,12 @@ class UIManager {
             spdBadge.innerText = `⚡ ${curHero.speed}`;
         }
 
+        const evacBadge = document.getElementById('menu-hero-evac-badge');
+        if (evacBadge) {
+            const evacMins = Math.round((curHero.evacTargetSeconds || 600) / 60);
+            evacBadge.innerText = `⏱️ ${evacMins} мин`;
+        }
+
         const weaponImg = document.getElementById('menu-hero-weapon-img');
         const weaponSkill = SKILLS_DATABASE[curHero.startingWeapon];
         if (weaponImg && weaponSkill) {
@@ -477,6 +483,7 @@ class UIManager {
                     <div class="hero-stats">
                         <span>❤️ HP: ${hero.maxHp}</span>
                         <span>⚡ ${this.t('speed')}: ${hero.speed}</span>
+                        <span>⏱️ ${Math.round((hero.evacTargetSeconds || 600) / 60)} мин</span>
                     </div>
                 </div>
                 <div class="hero-action">
