@@ -2195,12 +2195,12 @@ class GameScene extends Phaser.Scene {
 
         if (roll < 0.18) {
             type = 'drop_coin';
-        } else if (roll < 0.30) {
+        } else if (roll < 0.28) {
             type = 'drop_heal';
-        } else if (roll < 0.33) {
+        } else if (roll < 0.31) {
             type = 'drop_clock';
-        } else if (roll < 0.34) {
-            type = 'drop_bomb'; // Reduced from 3% to 1% (rare drop)
+        } else if (roll < 0.36) {
+            type = 'drop_bomb'; // 5% drop chance
         }
 
         const drop = this.drops.create(x, y, type);
