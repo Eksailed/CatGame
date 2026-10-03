@@ -264,6 +264,54 @@ class UIManager {
             }
         });
 
+        // Victory Modal Buttons
+        const btnVicMenu = document.getElementById('btn-victory-menu');
+        if (btnVicMenu) {
+            btnVicMenu.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.hideVictoryModal();
+                if (window.yandexSDK) {
+                    window.yandexSDK.showInterstitial(() => this.exitToMenu());
+                } else {
+                    this.exitToMenu();
+                }
+            });
+        }
+
+        const btnVicEndless = document.getElementById('btn-victory-endless');
+        if (btnVicEndless) {
+            btnVicEndless.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.hideVictoryModal();
+                if (this.gameScene) {
+                    this.gameScene.resumeEndlessMode();
+                }
+            });
+        }
+
+        const btnVicDouble = document.getElementById('btn-victory-double');
+        if (btnVicDouble) {
+            btnVicDouble.addEventListener('click', () => {
+                if (this.victoryDoubleUsed || !this.gameScene) return;
+                if (window.soundManager) window.soundManager.playClick();
+
+                const grantDouble = () => {
+                    this.victoryDoubleUsed = true;
+                    const bonus = (this.gameScene.coins + 500);
+                    this.totalCoins += bonus;
+                    this.saveGameData();
+                    document.getElementById('vic-coins').innerHTML = `${(this.gameScene.coins + 500) * 2} <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" /> (x2!)`;
+                    btnVicDouble.style.display = 'none';
+                };
+
+                if (window.yandexSDK) {
+                    window.yandexSDK.showRewarded(grantDouble);
+                } else {
+                    grantDouble();
+                }
+            });
+        }
+
         // Reroll Upgrades Button
         document.getElementById('btn-reroll-upgrade').addEventListener('click', () => {
             if (window.soundManager) window.soundManager.playClick();
@@ -839,6 +887,40 @@ class UIManager {
 
     hideGameOverModal() {
         document.getElementById('modal-gameover').classList.add('hidden');
+    }
+
+    showVictoryModal() {
+        const modal = document.getElementById('modal-victory');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+
+        const mins = Math.floor(this.gameScene.survivalTime / 60).toString().padStart(2, '0');
+        const secs = (this.gameScene.survivalTime % 60).toString().padStart(2, '0');
+        document.getElementById('vic-time').innerText = `${mins}:${secs}`;
+        document.getElementById('vic-kills').innerText = `${this.gameScene.kills}`;
+        document.getElementById('vic-coins').innerHTML = `${this.gameScene.coins} <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" />`;
+
+        // Victory bonus +500 coins!
+        const victoryBonus = 500;
+        this.totalCoins += this.gameScene.coins + victoryBonus;
+        if (this.gameScene.survivalTime > this.bestTime) this.bestTime = this.gameScene.survivalTime;
+        if (this.gameScene.kills > this.bestKills) this.bestKills = this.gameScene.kills;
+        this.saveGameData();
+
+        if (window.yandexSDK) {
+            window.yandexSDK.setScore(this.gameScene.kills);
+        }
+
+        if (window.soundManager) {
+            window.soundManager.playVictoryFanfare();
+        }
+
+        this.updateQuestBadge();
+    }
+
+    hideVictoryModal() {
+        const modal = document.getElementById('modal-victory');
+        if (modal) modal.classList.add('hidden');
     }
 
     exitToMenu() {

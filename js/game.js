@@ -15,6 +15,9 @@ class BootScene extends Phaser.Scene {
         this.load.image('decal_manhole', 'assets/decal_manhole.png' + V);
         this.load.image('shadow_char', 'assets/shadow_char.png' + V);
         this.load.image('enemy_threat_ring', 'assets/enemy_threat_ring.png' + V);
+        this.load.image('helipad_zone', 'assets/helipad_zone.png' + V);
+        this.load.image('cat_chopper', 'assets/cat_chopper.png' + V);
+        this.load.image('chopper_rotor', 'assets/chopper_rotor.png' + V);
         this.load.image('cat_barsik', 'assets/cat_barsik.png' + V);
         this.load.image('cat_murzik', 'assets/cat_murzik.png' + V);
         this.load.image('cat_pukhlyash', 'assets/cat_pukhlyash.png' + V);
@@ -168,6 +171,16 @@ class GameScene extends Phaser.Scene {
 
         // Starting weapon
         this.addOrUpgradeSkill(this.heroConfig.startingWeapon);
+
+        // Evacuation & Victory Progression
+        this.evacTriggered = false;
+        this.evacCompleted = false;
+        this.isEndlessMode = false;
+        this.evacCountdown = 30;
+        this.helipad = null;
+        this.chopper = null;
+        this.chopperRotor = null;
+        this.evacIndicator = null;
 
         // Joystick
         this.joystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, moveX: 0, moveY: 0 };
@@ -878,6 +891,32 @@ class GameScene extends Phaser.Scene {
             this.activeBoss = null;
             if (window.uiManager) window.uiManager.hideBossBar();
         }
+
+        // Evacuation Progression: Helicopter rescue triggers at 5:00 (300 seconds)
+        if (this.survivalTime >= 300 && !this.evacTriggered && !this.isEndlessMode) {
+            this.startEvacuationSequence();
+        }
+
+        if (this.evacTriggered && !this.evacCompleted && !this.isEndlessMode) {
+            this.evacCountdown--;
+            const countEl = document.getElementById('evac-countdown');
+            if (countEl) countEl.innerText = Math.max(0, this.evacCountdown);
+
+            if (this.evacCountdown % 5 === 0 && this.evacCountdown > 0) {
+                if (window.soundManager) window.soundManager.playEvacAlarm();
+            }
+
+            if (this.evacCountdown <= 0) {
+                const center = this.arenaSize / 2;
+                const distToHelipad = Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center);
+                if (distToHelipad < 160) {
+                    this.executeHelicopterRescue();
+                } else if (this.survivalTime % 3 === 0) {
+                    this.showDamageText(this.player.x, this.player.y - 50, '🚁 ВЕРТОЛЁТ ЖДЁТ В ЦЕНТРЕ! БЕГИ! 🚁', '#f1c40f');
+                    if (window.soundManager) window.soundManager.playEvacAlarm();
+                }
+            }
+        }
     }
 
     update(time, delta) {
@@ -1005,6 +1044,30 @@ class GameScene extends Phaser.Scene {
         // 6. Boss health bar update
         if (this.activeBoss && this.activeBoss.active) {
             if (window.uiManager) window.uiManager.updateBossBar(this.activeBoss.hp, this.activeBoss.maxHp);
+        }
+
+        // 7. Evacuation Navigation Indicator
+        if (this.evacTriggered && !this.evacCompleted && !this.isEndlessMode) {
+            const center = this.arenaSize / 2;
+            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center);
+            if (dist > 180) {
+                if (!this.evacIndicator) {
+                    this.evacIndicator = this.add.graphics().setDepth(20);
+                }
+                const g = this.evacIndicator;
+                g.clear();
+                const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, center, center);
+                const ax = this.player.x + Math.cos(ang) * 60;
+                const ay = this.player.y + Math.sin(ang) * 60;
+                g.fillStyle(0x2ecc71, 0.95);
+                g.fillCircle(ax, ay, 6);
+                g.lineStyle(3, 0xffffff, 0.9);
+                g.lineBetween(ax, ay, ax + Math.cos(ang) * 16, ay + Math.sin(ang) * 16);
+            } else if (this.evacIndicator) {
+                this.evacIndicator.clear();
+            }
+        } else if (this.evacIndicator) {
+            this.evacIndicator.clear();
         }
     }
 
@@ -2618,6 +2681,161 @@ class GameScene extends Phaser.Scene {
 
         if (window.soundManager) window.soundManager.playGameOver();
         if (window.uiManager) window.uiManager.showGameOverModal();
+    }
+
+    startEvacuationSequence() {
+        this.evacTriggered = true;
+        this.evacCountdown = 30;
+
+        const banner = document.getElementById('evac-hud-banner');
+        if (banner) banner.classList.remove('hidden');
+
+        if (window.soundManager) window.soundManager.playEvacAlarm();
+
+        const center = this.arenaSize / 2;
+        // Spawn glowing landing pad at center of the plaza
+        if (!this.helipad) {
+            this.helipad = this.add.image(center, center, 'helipad_zone');
+            this.helipad.setDepth(2);
+            this.helipad.setScale(1.2);
+            this.tweens.add({
+                targets: this.helipad,
+                scaleX: 1.35,
+                scaleY: 1.35,
+                alpha: 0.7,
+                yoyo: true,
+                repeat: -1,
+                duration: 700
+            });
+        }
+
+        // Camera flash & emergency broadcast
+        this.cameras.main.flash(500, 46, 204, 113);
+        this.showDamageText(this.player.x, this.player.y - 60, '🚁 ЭВАКУАЦИЯ! БОРТ «9 ЖИЗНЕЙ» НА ПОДХОДЕ! 🚁', '#2ecc71');
+    }
+
+    executeHelicopterRescue() {
+        if (this.evacCompleted) return;
+        this.evacCompleted = true;
+
+        const banner = document.getElementById('evac-hud-banner');
+        if (banner) banner.classList.add('hidden');
+
+        // Immunity and stop player controls
+        this.invulnerableTimer = 999999;
+        this.isDashing = false;
+
+        const center = this.arenaSize / 2;
+        const targetX = center;
+        const targetY = center - 20;
+
+        if (window.soundManager) window.soundManager.playChopperRotor();
+
+        // Spawn rescue helicopter descending from above
+        this.chopper = this.add.image(targetX, targetY - 500, 'cat_chopper');
+        this.chopper.setDepth(15);
+        this.chopper.setScale(1.3);
+
+        this.chopperRotor = this.add.image(targetX, targetY - 500 - 22, 'chopper_rotor');
+        this.chopperRotor.setDepth(16);
+        this.chopperRotor.setScale(1.4);
+
+        // Rotating rotor animation
+        const rotorEvent = this.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (this.chopperRotor && this.chopperRotor.active) {
+                    this.chopperRotor.angle += 35;
+                }
+            },
+            loop: true
+        });
+
+        // 1. Chopper descends smoothly down to the pad
+        this.tweens.add({
+            targets: [this.chopper, this.chopperRotor],
+            y: `+=500`,
+            duration: 1500,
+            ease: 'Power2.easeOut',
+            onComplete: () => {
+                if (window.soundManager) window.soundManager.playMeow();
+                // 2. Player cat hops into the helicopter!
+                this.tweens.add({
+                    targets: this.player,
+                    x: targetX,
+                    y: targetY + 10,
+                    scaleX: 0.5,
+                    scaleY: 0.5,
+                    duration: 600,
+                    ease: 'Back.easeIn',
+                    onComplete: () => {
+                        this.player.setAlpha(0); // Cat entered chopper!
+                        if (this.playerShadow) this.playerShadow.setAlpha(0);
+
+                        // 3. Helicopter takes off with victory celebration!
+                        this.time.delayedCall(500, () => {
+                            if (window.soundManager) {
+                                window.soundManager.playChopperRotor();
+                                window.soundManager.playVictoryFanfare();
+                            }
+
+                            // Flash & triumphant take off
+                            this.cameras.main.flash(600, 255, 235, 100);
+
+                            this.tweens.add({
+                                targets: [this.chopper, this.chopperRotor],
+                                y: `-=700`,
+                                x: `+=150`,
+                                scaleX: 1.5,
+                                scaleY: 1.5,
+                                duration: 1800,
+                                ease: 'Power2.easeIn',
+                                onComplete: () => {
+                                    rotorEvent.remove();
+                                    this.triggerVictory();
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    triggerVictory() {
+        this.isGameOver = true;
+        this.pauseGame();
+
+        const vig = document.getElementById('damage-vignette');
+        if (vig) vig.classList.remove('active', 'low-hp-pulse');
+
+        if (window.uiManager) {
+            window.uiManager.showVictoryModal();
+        }
+    }
+
+    resumeEndlessMode() {
+        this.isEndlessMode = true;
+        this.isGameOver = false;
+        this.evacCompleted = true;
+        this.invulnerableTimer = 2500;
+        this.player.setAlpha(1);
+        if (this.playerShadow) this.playerShadow.setAlpha(0.65);
+        this.player.setScale(1);
+
+        if (this.chopper) {
+            this.chopper.destroy();
+            this.chopper = null;
+        }
+        if (this.chopperRotor) {
+            this.chopperRotor.destroy();
+            this.chopperRotor = null;
+        }
+
+        this.resumeGame();
+        if (window.soundManager) window.soundManager.startMusic();
+
+        this.showDamageText(this.player.x, this.player.y - 50, '⚔️ БЕСКОНЕЧНЫЙ РЕЖИМ! ⚔️', '#ffd700');
     }
 }
 

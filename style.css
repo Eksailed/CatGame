@@ -1001,3 +1001,72 @@ html, body {
     100% { opacity: 0.88; box-shadow: inset 0 0 110px 55px rgba(255, 0, 0, 0.95); }
 }
 
+/* --- EVACUATION HUD BANNER --- */
+.evac-hud-banner {
+    position: absolute;
+    top: 55px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(18, 30, 22, 0.92);
+    border: 2px solid #2ecc71;
+    border-radius: 14px;
+    padding: 8px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+    z-index: 35;
+    animation: evacPulse 1s infinite alternate ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes evacPulse {
+    0% { transform: translateX(-50%) scale(0.98); box-shadow: 0 0 10px rgba(46, 204, 113, 0.4); }
+    100% { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 25px rgba(46, 204, 113, 0.85); }
+}
+
+.evac-hud-badge {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #2ecc71;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(46, 204, 113, 0.8);
+}
+
+.evac-hud-timer {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #ffffff;
+    margin: 2px 0;
+}
+
+.evac-time-val {
+    color: #ffd700;
+    font-size: 1.3rem;
+}
+
+.evac-hud-hint {
+    font-size: 0.75rem;
+    color: #a8e6cf;
+    font-weight: bold;
+}
+
+/* --- VICTORY MODAL --- */
+.victory-modal-content {
+    border: 3px solid #2ecc71 !important;
+    background: linear-gradient(135deg, #1b2e22 0%, #1a1e24 100%) !important;
+    box-shadow: 0 0 35px rgba(46, 204, 113, 0.5) !important;
+    text-align: center;
+}
+
+.victory-crown-badge {
+    font-size: 2.2rem;
+    margin-bottom: 6px;
+    animation: floatCrown 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes floatCrown {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-8px); }
+}
+

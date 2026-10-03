@@ -395,6 +395,38 @@ class SoundManager {
         }, tempoMs);
     }
 
+    // Evacuation Radio & Siren Alarm
+    playEvacAlarm() {
+        this.playTone(880, 'sine', 0.12, 0.25, 0);
+        setTimeout(() => this.playTone(1100, 'sine', 0.15, 0.3, 0), 120);
+        setTimeout(() => this.playTone(1320, 'sine', 0.2, 0.35, 0), 260);
+    }
+
+    // Chopper Rotor Sound Burst
+    playChopperRotor() {
+        this.playNoise(0.15, 0.3, true);
+        this.playTone(65, 'triangle', 0.18, 0.3, -20);
+    }
+
+    // Victory Fanfare Jingle
+    playVictoryFanfare() {
+        this.stopMusic();
+        const notes = [
+            { f: 523.25, d: 0.15, t: 0 },
+            { f: 659.25, d: 0.15, t: 150 },
+            { f: 783.99, d: 0.15, t: 300 },
+            { f: 1046.50, d: 0.4, t: 450 },
+            { f: 880.00, d: 0.2, t: 700 },
+            { f: 1046.50, d: 0.7, t: 900 }
+        ];
+        notes.forEach(n => {
+            setTimeout(() => {
+                this.playTone(n.f, 'triangle', n.d, 0.32, 0);
+                this.playTone(n.f / 2, 'sine', n.d, 0.22, 0);
+            }, n.t);
+        });
+    }
+
     stopMusic() {
         this.musicPlaying = false;
         if (this.musicTimer) {

@@ -74,6 +74,13 @@
                     </div>
                 </div>
 
+                <!-- Evacuation Emergency Banner -->
+                <div id="evac-hud-banner" class="evac-hud-banner hidden">
+                    <div class="evac-hud-badge">🚁 СИГНАЛ ЭВАКУАЦИИ 🚁</div>
+                    <div class="evac-hud-timer">ВЕРТОЛЁТ ЧЕРЕЗ: <span id="evac-countdown" class="evac-time-val">30</span>с</div>
+                    <div class="evac-hud-hint">⚡ Беги на посадочную зону в центре святилища! ⚡</div>
+                </div>
+
                 <div class="hud-top-bar">
                     <div class="hud-stats-group">
                         <span id="hud-lvl">Уровень 1</span>
@@ -202,6 +209,38 @@
                     <button id="btn-double-coins" class="btn btn-blue" data-i18n="doubleCoins">УДВОИТЬ МОНЕТЫ (РЕКЛАМА)</button>
                     <button id="btn-restart" class="btn btn-primary" data-i18n="restart">ЗАНОВО</button>
                     <button id="btn-gameover-menu" class="btn btn-secondary" data-i18n="toMenu">В МЕНЮ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Victory Modal -->
+        <div id="modal-victory" class="modal-overlay hidden">
+            <div class="modal-content victory-modal-content">
+                <div class="victory-crown-badge">👑 🚁 🐾</div>
+                <h2 class="modal-title" style="color: #2ecc71; text-shadow: 0 0 16px rgba(46, 204, 113, 0.7);">МИССИЯ ВЫПОЛНЕНА!</h2>
+                <p class="victory-subtitle" style="color: #f1c40f; font-weight: bold; margin-bottom: 12px; font-size: 1.05rem;">БОРТ «9 ЖИЗНЕЙ» ЭВАКУИРОВАЛ КОТИКА!</p>
+                <div class="gameover-stats">
+                    <div class="gameover-stat-row">
+                        <span data-i18n="survivedTime">Время операции:</span>
+                        <span id="vic-time" style="font-weight: bold; color: #2ecc71;">05:30</span>
+                    </div>
+                    <div class="gameover-stat-row">
+                        <span data-i18n="monstersDefeated">Побеждено врагов:</span>
+                        <span id="vic-kills" style="font-weight: bold;">0</span>
+                    </div>
+                    <div class="gameover-stat-row">
+                        <span data-i18n="coinsEarned">Собрано монет:</span>
+                        <span id="vic-coins" style="font-weight: bold; color: #f1c40f; display: inline-flex; align-items: center; gap: 4px;">0 <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" /></span>
+                    </div>
+                    <div class="gameover-stat-row" style="background: rgba(241, 196, 15, 0.15); border: 1px solid rgba(241, 196, 15, 0.4); border-radius: 6px; padding: 6px 10px;">
+                        <span style="color: #ffd700; font-weight: bold;">Награда за спасение:</span>
+                        <span style="font-weight: bold; color: #ffd700;">+500 <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" /></span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="btn-victory-double" class="btn btn-blue">УДВОИТЬ НАГРАДУ (РЕКЛАМА)</button>
+                    <button id="btn-victory-endless" class="btn btn-primary" style="background: linear-gradient(135deg, #e67e22, #d35400);">БЕСКОНЕЧНЫЙ РЕЖИМ ⚔️</button>
+                    <button id="btn-victory-menu" class="btn btn-secondary" data-i18n="toMenu">В МЕНЮ</button>
                 </div>
             </div>
         </div>
