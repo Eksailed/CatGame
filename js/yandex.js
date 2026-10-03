@@ -1,43 +1,67 @@
-// Yandex Games SDK Integration Wrapper
-class YandexSDKWrapper {
+// Unified Platform SDK: VK Games (VK Bridge) + Yandex Games SDK Wrapper
+class PlatformSDKWrapper {
     constructor() {
+        this.platform = 'local'; // 'vk', 'yandex', or 'local'
         this.ysdk = null;
         this.player = null;
         this.isInitialized = false;
         this.lastInterstitialTime = 0;
-        this.interstitialCooldown = 65000; // 65 seconds moderation safe cooldown
+        this.interstitialCooldown = 60000; // 60s cooldown
         this.lang = 'ru';
     }
 
     async init() {
-        if (typeof YaGames === 'undefined') {
-            console.warn('[YandexSDK] YaGames SDK script not found, running in local fallback mode');
-            this.detectBrowserLang();
-            return false;
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasVkParams = urlParams.has('vk_user_id') || urlParams.has('vk_app_id');
 
-        try {
-            this.ysdk = await YaGames.init();
-            this.isInitialized = true;
-            this.lang = this.ysdk.environment.i18n.lang || 'ru';
-            console.log('[YandexSDK] Initialized successfully. Language:', this.lang);
-
-            // Init player
+        // 1. Check for VK Bridge (VK Games)
+        if (typeof vkBridge !== 'undefined' || hasVkParams) {
             try {
-                this.player = await this.ysdk.getPlayer({ scopes: false });
-                console.log('[YandexSDK] Player initialized');
-            } catch (err) {
-                console.warn('[YandexSDK] Guest player mode:', err);
-            }
+                if (typeof vkBridge !== 'undefined') {
+                    await vkBridge.send('VKWebAppInit');
+                    this.platform = 'vk';
+                    this.isInitialized = true;
+                    this.lang = 'ru';
+                    console.log('[PlatformSDK] VK Bridge initialized successfully!');
 
-            // Tell Yandex that the game is ready
-            this.ready();
-            return true;
-        } catch (e) {
-            console.error('[YandexSDK] Initialization error:', e);
-            this.detectBrowserLang();
-            return false;
+                    // Banner/Ad warm up
+                    try {
+                        await vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' });
+                    } catch (e) {}
+                    return true;
+                }
+            } catch (err) {
+                console.warn('[PlatformSDK] VK Bridge init error, checking fallbacks:', err);
+            }
         }
+
+        // 2. Check for Yandex Games SDK
+        if (typeof YaGames !== 'undefined') {
+            try {
+                this.ysdk = await YaGames.init();
+                this.platform = 'yandex';
+                this.isInitialized = true;
+                this.lang = this.ysdk.environment.i18n.lang || 'ru';
+                console.log('[PlatformSDK] Yandex Games SDK initialized. Lang:', this.lang);
+
+                try {
+                    this.player = await this.ysdk.getPlayer({ scopes: false });
+                } catch (err) {
+                    console.warn('[PlatformSDK] Yandex guest mode:', err);
+                }
+
+                this.ready();
+                return true;
+            } catch (e) {
+                console.error('[PlatformSDK] Yandex init error:', e);
+            }
+        }
+
+        // 3. Fallback to Local Mode
+        this.platform = 'local';
+        this.detectBrowserLang();
+        console.log('[PlatformSDK] Running in standalone local mode. Platform:', this.platform);
+        return false;
     }
 
     detectBrowserLang() {
@@ -46,91 +70,123 @@ class YandexSDKWrapper {
     }
 
     ready() {
-        if (this.ysdk && this.ysdk.features && this.ysdk.features.LoadingAPI) {
+        if (this.platform === 'yandex' && this.ysdk && this.ysdk.features && this.ysdk.features.LoadingAPI) {
             try {
                 this.ysdk.features.LoadingAPI.ready();
-                console.log('[YandexSDK] LoadingAPI.ready() signaled');
-            } catch (e) {
-                console.warn('[YandexSDK] Error calling ready():', e);
-            }
+            } catch (e) {}
         }
     }
 
-    // Interstitial Ad with safe cooldown and sound auto-pause
+    // Interstitial Ad with cooldown and sound auto-pause
     showInterstitial(onComplete = null) {
         const now = Date.now();
         if (now - this.lastInterstitialTime < this.interstitialCooldown) {
-            console.log('[YandexSDK] Interstitial skipped due to cooldown');
+            console.log('[PlatformSDK] Interstitial skipped due to cooldown');
             if (onComplete) onComplete(false);
             return;
         }
 
-        if (!this.ysdk || !this.ysdk.adv) {
-            console.log('[YandexSDK] Interstitial (Mock/Fallback)');
-            if (onComplete) onComplete(true);
-            return;
-        }
-
-        // Mute sound during ad
         const wasMuted = window.soundManager ? window.soundManager.muted : false;
         if (window.soundManager) window.soundManager.setMuted(true);
 
-        this.ysdk.adv.showFullscreenAdv({
-            callbacks: {
-                onOpen: () => {
-                    console.log('[YandexSDK] Interstitial opened');
-                },
-                onClose: (wasShown) => {
-                    console.log('[YandexSDK] Interstitial closed, wasShown:', wasShown);
+        const restoreSound = () => {
+            if (!wasMuted && window.soundManager) window.soundManager.setMuted(false);
+        };
+
+        // VK Games Ads
+        if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
+            vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' })
+                .then(data => {
                     this.lastInterstitialTime = Date.now();
-                    if (!wasMuted && window.soundManager) window.soundManager.setMuted(false);
-                    if (onComplete) onComplete(wasShown);
-                },
-                onError: (error) => {
-                    console.warn('[YandexSDK] Interstitial error:', error);
-                    if (!wasMuted && window.soundManager) window.soundManager.setMuted(false);
+                    restoreSound();
+                    if (onComplete) onComplete(data && data.result);
+                })
+                .catch(err => {
+                    console.warn('[PlatformSDK] VK Interstitial ad error/closed:', err);
+                    restoreSound();
                     if (onComplete) onComplete(false);
+                });
+            return;
+        }
+
+        // Yandex Games Ads
+        if (this.platform === 'yandex' && this.ysdk && this.ysdk.adv) {
+            this.ysdk.adv.showFullscreenAdv({
+                callbacks: {
+                    onClose: (wasShown) => {
+                        this.lastInterstitialTime = Date.now();
+                        restoreSound();
+                        if (onComplete) onComplete(wasShown);
+                    },
+                    onError: (error) => {
+                        restoreSound();
+                        if (onComplete) onComplete(false);
+                    }
                 }
-            }
-        });
+            });
+            return;
+        }
+
+        // Local Fallback
+        restoreSound();
+        if (onComplete) onComplete(true);
     }
 
     // Rewarded Video Ad
     showRewarded(onRewarded, onClose = null) {
-        if (!this.ysdk || !this.ysdk.adv) {
-            console.log('[YandexSDK] Rewarded Ad (Mock fallback - granting reward)');
-            if (onRewarded) onRewarded();
-            if (onClose) onClose(true);
-            return;
-        }
-
         const wasMuted = window.soundManager ? window.soundManager.muted : false;
         if (window.soundManager) window.soundManager.setMuted(true);
 
-        let rewarded = false;
+        const restoreSound = () => {
+            if (!wasMuted && window.soundManager) window.soundManager.setMuted(false);
+        };
 
-        this.ysdk.adv.showRewardedVideo({
-            callbacks: {
-                onOpen: () => {
-                    console.log('[YandexSDK] Rewarded ad opened');
-                },
-                onRewarded: () => {
-                    console.log('[YandexSDK] User earned reward');
-                    rewarded = true;
-                    if (onRewarded) onRewarded();
-                },
-                onClose: () => {
-                    console.log('[YandexSDK] Rewarded ad closed');
-                    if (!wasMuted && window.soundManager) window.soundManager.setMuted(false);
-                    if (onClose) onClose(rewarded);
-                },
-                onError: (e) => {
-                    console.warn('[YandexSDK] Rewarded ad error:', e);
-                    if (!wasMuted && window.soundManager) window.soundManager.setMuted(false);
+        // VK Games Rewarded Ads
+        if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
+            vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
+                .then(data => {
+                    restoreSound();
+                    if (data && data.result) {
+                        if (onRewarded) onRewarded();
+                        if (onClose) onClose(true);
+                    } else {
+                        if (onClose) onClose(false);
+                    }
+                })
+                .catch(err => {
+                    console.warn('[PlatformSDK] VK Rewarded ad error/closed:', err);
+                    restoreSound();
                     if (onClose) onClose(false);
+                });
+            return;
+        }
+
+        // Yandex Games Rewarded Ads
+        if (this.platform === 'yandex' && this.ysdk && this.ysdk.adv) {
+            let rewarded = false;
+            this.ysdk.adv.showRewardedVideo({
+                callbacks: {
+                    onRewarded: () => {
+                        rewarded = true;
+                        if (onRewarded) onRewarded();
+                    },
+                    onClose: () => {
+                        restoreSound();
+                        if (onClose) onClose(rewarded);
+                    },
+                    onError: () => {
+                        restoreSound();
+                        if (onClose) onClose(false);
+                    }
                 }
-            }
-        });
+            });
+            return;
+        }
+
+        // Local Fallback (Mock reward granted)
+        restoreSound();
+        if (onRewarded) onRewarded();
+        if (onClose) onClose(true);
     }
 
     // Cloud / Local Save
@@ -138,12 +194,27 @@ class YandexSDKWrapper {
         const jsonStr = JSON.stringify(data);
         localStorage.setItem('cat_survivor_save', jsonStr);
 
-        if (this.player) {
+        // VK Cloud Storage
+        if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
+            try {
+                await vkBridge.send('VKWebAppStorageSet', {
+                    key: 'cat_survivor_save',
+                    value: jsonStr
+                });
+                console.log('[PlatformSDK] VK Cloud save successful');
+            } catch (e) {
+                console.warn('[PlatformSDK] VK Cloud save failed, using local only:', e);
+            }
+            return;
+        }
+
+        // Yandex Cloud Storage
+        if (this.platform === 'yandex' && this.player) {
             try {
                 await this.player.setData({ cat_survivor_save: jsonStr }, true);
-                console.log('[YandexSDK] Cloud save successful');
+                console.log('[PlatformSDK] Yandex Cloud save successful');
             } catch (e) {
-                console.warn('[YandexSDK] Cloud save failed, using local only:', e);
+                console.warn('[PlatformSDK] Yandex Cloud save failed, using local only:', e);
             }
         }
     }
@@ -152,18 +223,33 @@ class YandexSDKWrapper {
     async loadProgress() {
         let rawData = null;
 
-        if (this.player) {
+        // VK Cloud Load
+        if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
+            try {
+                const res = await vkBridge.send('VKWebAppStorageGet', { keys: ['cat_survivor_save'] });
+                if (res && res.keys && res.keys.length > 0 && res.keys[0].value) {
+                    rawData = res.keys[0].value;
+                    console.log('[PlatformSDK] VK Cloud save loaded');
+                }
+            } catch (e) {
+                console.warn('[PlatformSDK] VK Cloud load failed, fallback to local:', e);
+            }
+        }
+
+        // Yandex Cloud Load
+        if (!rawData && this.platform === 'yandex' && this.player) {
             try {
                 const cloudData = await this.player.getData(['cat_survivor_save']);
                 if (cloudData && cloudData.cat_survivor_save) {
                     rawData = cloudData.cat_survivor_save;
-                    console.log('[YandexSDK] Cloud save loaded');
+                    console.log('[PlatformSDK] Yandex Cloud save loaded');
                 }
             } catch (e) {
-                console.warn('[YandexSDK] Cloud load failed, fallback to local:', e);
+                console.warn('[PlatformSDK] Yandex Cloud load failed, fallback to local:', e);
             }
         }
 
+        // Local Storage Fallback
         if (!rawData) {
             rawData = localStorage.getItem('cat_survivor_save');
         }
@@ -181,15 +267,23 @@ class YandexSDKWrapper {
 
     // Leaderboard submit score
     async setScore(score) {
-        if (!this.ysdk) return;
-        try {
-            const lb = await this.ysdk.getLeaderboards();
-            await lb.setLeaderboardScore('survivor_kills', score);
-            console.log('[YandexSDK] Score submitted:', score);
-        } catch (e) {
-            console.warn('[YandexSDK] Leaderboard not available or failed:', e);
+        if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
+            try {
+                await vkBridge.send('VKWebAppShowLeaderBoardBox', { user_result: score });
+            } catch (e) {}
+            return;
+        }
+
+        if (this.platform === 'yandex' && this.ysdk) {
+            try {
+                const lb = await this.ysdk.getLeaderboards();
+                await lb.setLeaderboardScore('survivor_kills', score);
+            } catch (e) {}
         }
     }
 }
 
-window.yandexSDK = new YandexSDKWrapper();
+// Aliases for seamless backwards compatibility
+const platformSDK = new PlatformSDKWrapper();
+window.platformSDK = platformSDK;
+window.yandexSDK = platformSDK;
