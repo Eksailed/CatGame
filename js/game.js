@@ -6,13 +6,15 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        const V = '?v=3.7';
+        const V = '?v=3.8';
         // Environment & Map Elements
         this.load.image('tile_floor', 'assets/tile_floor.png' + V);
         this.load.image('map_plaza', 'assets/map_plaza.png' + V);
         this.load.image('boundary_wall', 'assets/boundary_wall.png' + V);
         this.load.image('decal_flowers', 'assets/decal_flowers.png' + V);
         this.load.image('decal_manhole', 'assets/decal_manhole.png' + V);
+        this.load.image('shadow_char', 'assets/shadow_char.png' + V);
+        this.load.image('enemy_threat_ring', 'assets/enemy_threat_ring.png' + V);
         this.load.image('cat_barsik', 'assets/cat_barsik.png' + V);
         this.load.image('cat_murzik', 'assets/cat_murzik.png' + V);
         this.load.image('cat_pukhlyash', 'assets/cat_pukhlyash.png' + V);
@@ -306,6 +308,9 @@ class GameScene extends Phaser.Scene {
         // 4. Player Creation (Spawned in front of the Cat Guardian Monument)
         const startX = this.arenaSize / 2;
         const startY = this.arenaSize / 2 + 75;
+        this.playerShadow = this.add.image(startX, startY + 18, 'shadow_char');
+        this.playerShadow.setDepth(7);
+        this.playerShadow.setAlpha(0.65);
         this.player = this.physics.add.sprite(startX, startY, `cat_${this.selectedHeroId}_idle`);
         this.player.play(`${this.selectedHeroId}_idle`);
         this.player.hurtTimer = 0;
@@ -975,6 +980,11 @@ class GameScene extends Phaser.Scene {
         if (this.activeSkills.aura || this.activeSkills.evo_dome) {
             this.auraVisual.setPosition(this.player.x, this.player.y);
             this.auraVisual.rotation += 0.025;
+        }
+
+        // Ground shadow follows player
+        if (this.playerShadow && this.playerShadow.active) {
+            this.playerShadow.setPosition(this.player.x, this.player.y + 18);
         }
 
         // Update ground puddles (Valerian)
@@ -1950,7 +1960,7 @@ class GameScene extends Phaser.Scene {
         enemy.hp -= amount;
         this.showDamageText(enemy.x, enemy.y - 20, Math.round(amount), '#ffffff');
 
-        enemy.setTint(0xff6666);
+        enemy.setTint(0xff5555);
         this.time.delayedCall(80, () => {
             if (enemy && enemy.active) {
                 enemy.clearTint();
@@ -1959,6 +1969,9 @@ class GameScene extends Phaser.Scene {
             }
         });
 
+        // Show/update mini HP bar on hit
+        this.showEnemyHpBar(enemy);
+
         if (window.soundManager) window.soundManager.playEnemyHit();
 
         if (enemy.hp <= 0) {
@@ -1966,8 +1979,54 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    showEnemyHpBar(enemy) {
+        if (enemy.isBoss) return;
+        if (!enemy.hpBarGraphics) {
+            enemy.hpBarGraphics = this.add.graphics();
+            enemy.hpBarGraphics.setDepth(9);
+        }
+        this.updateEnemyHpBar(enemy);
+    }
+
+    updateEnemyHpBar(enemy) {
+        if (!enemy.hpBarGraphics || !enemy.active) return;
+        const g = enemy.hpBarGraphics;
+        g.clear();
+        if (enemy.hp <= 0) return;
+
+        const w = 28;
+        const h = 4;
+        const bx = enemy.x - w / 2;
+        const by = enemy.y - (enemy.enemyType === 'dog' ? 32 : 26);
+        const pct = Phaser.Math.Clamp(enemy.hp / enemy.maxHp, 0, 1);
+
+        // Dark background border
+        g.fillStyle(0x0a0a0a, 0.85);
+        g.fillRect(bx - 1, by - 1, w + 2, h + 2);
+        // Depleted red
+        g.fillStyle(0x441111, 0.9);
+        g.fillRect(bx, by, w, h);
+        // Active health fill (crimson/amber)
+        g.fillStyle(pct > 0.4 ? 0xff2222 : 0xff9900, 0.95);
+        g.fillRect(bx, by, Math.max(1, Math.round(w * pct)), h);
+    }
+
     killEnemy(enemy) {
         if (!enemy.active) return;
+
+        // Clean up attached visual elements
+        if (enemy.shadow) {
+            enemy.shadow.destroy();
+            enemy.shadow = null;
+        }
+        if (enemy.threatRing) {
+            enemy.threatRing.destroy();
+            enemy.threatRing = null;
+        }
+        if (enemy.hpBarGraphics) {
+            enemy.hpBarGraphics.destroy();
+            enemy.hpBarGraphics = null;
+        }
 
         this.kills++;
         const ex = enemy.x;
@@ -2321,6 +2380,40 @@ class GameScene extends Phaser.Scene {
         enemy.enemyType = type;
         enemy.lastShootTime = this.time.now + Phaser.Math.Between(500, 2000);
 
+        // Ground Drop Shadow under enemy
+        const shadow = this.add.image(x, y + 14, 'shadow_char');
+        shadow.setDepth(6);
+        shadow.setAlpha(0.65);
+        if (isBoss) {
+            shadow.setScale(type === 'boss_dozer' ? 2.5 : 2.0, 1.8);
+        } else if (type === 'pigeon') {
+            shadow.setScale(0.85, 0.6);
+            shadow.setAlpha(0.45);
+        } else if (type === 'dog') {
+            shadow.setScale(1.2, 0.9);
+        }
+        enemy.shadow = shadow;
+
+        // Subtle threat indicator ring under enemies
+        const threatRing = this.add.image(x, y + 14, 'enemy_threat_ring');
+        threatRing.setDepth(6);
+        threatRing.setAlpha(isBoss ? 0.9 : 0.45);
+        if (isBoss) {
+            threatRing.setScale(type === 'boss_dozer' ? 2.4 : 1.9);
+            this.tweens.add({
+                targets: threatRing,
+                scaleX: (type === 'boss_dozer' ? 2.7 : 2.2),
+                scaleY: (type === 'boss_dozer' ? 2.7 : 2.2),
+                alpha: 0.6,
+                yoyo: true,
+                repeat: -1,
+                duration: 600
+            });
+        } else if (type === 'spitter') {
+            threatRing.setTint(0x33ff66); // Neon toxic glow under ranged spitters
+        }
+        enemy.threatRing = threatRing;
+
         if (isBoss) {
             this.activeBoss = enemy;
             if (window.soundManager) window.soundManager.playBossWarning();
@@ -2347,6 +2440,18 @@ class GameScene extends Phaser.Scene {
 
         this.enemies.getChildren().forEach(e => {
             if (!e.active) return;
+
+            // Follow position for shadow & threat ring
+            const shadowOffsetY = e.enemyType === 'pigeon' ? 22 : 14;
+            if (e.shadow && e.shadow.active) {
+                e.shadow.setPosition(e.x, e.y + shadowOffsetY);
+            }
+            if (e.threatRing && e.threatRing.active) {
+                e.threatRing.setPosition(e.x, e.y + shadowOffsetY);
+            }
+            if (e.hpBarGraphics && e.hpBarGraphics.active) {
+                this.updateEnemyHpBar(e);
+            }
 
             if (isFrozen) {
                 e.body.setVelocity(0, 0);

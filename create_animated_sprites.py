@@ -20,6 +20,22 @@ def assemble_spritesheet(frames, frame_w, frame_h, out_filename):
     path = os.path.join(ASSETS_DIR, out_filename)
     sheet.save(path, "PNG")
     print(f"Generated Sheet: {path} ({total_w}x{frame_h}, {len(frames)} frames)")
+    
+    # Also save static fallback frame 0
+    static_map = {
+        'enemy_mouse_walk.png': 'enemy_mouse.png',
+        'enemy_dog_run.png': 'enemy_dog.png',
+        'enemy_cucumber_hop.png': 'enemy_cucumber.png',
+        'enemy_pigeon_fly.png': 'enemy_pigeon.png',
+        'enemy_spitter_walk.png': 'enemy_spitter.png',
+        'boss_vacuum_move.png': 'boss_vacuum.png',
+        'boss_bulldozer_move.png': 'boss_bulldozer.png'
+    }
+    if out_filename in static_map:
+        static_path = os.path.join(ASSETS_DIR, static_map[out_filename])
+        first_frame = frames[0].resize((frame_w, frame_h), Image.Resampling.LANCZOS)
+        first_frame.save(static_path, "PNG")
+        print(f"Generated Static: {static_path}")
 
 # ========================================================
 # 1. CAT RUNNING & IDLE CYCLES (4 run frames, 2 idle frames)
@@ -187,7 +203,7 @@ def generate_cat_sheets(hero_id, body_col, dark_shade, light_tint, eye_col):
 # 2. ENEMY ANIMATION CYCLES
 # ========================================================
 
-# Mouse Scurry Cycle (4 frames: 48x48)
+# Mouse Scurry Cycle (4 frames: 48x48) - High Contrast & Ink Outline
 def generate_mouse_sheet():
     fw, fh = 48, 48
     frames = []
@@ -195,25 +211,34 @@ def generate_mouse_sheet():
     steps = [(-5, 5, 0, 0), (0, 0, -6, 1), (5, -5, 4, 0), (0, 0, 6, 1)]
     for f_idx, (lx, rx, ty, eq) in enumerate(steps):
         img, d, s = create_frame(fw, fh)
-        d.ellipse([10*s, 36*s, 38*s, 44*s], fill=(0, 0, 0, 55))
-        # Tail whipping
-        d.arc([4*s, (18 + ty)*s, 22*s, (38 + ty)*s], 90, 270, fill=(160, 90, 110), width=2*s)
-        # Scurrying Paws
-        d.ellipse([(14 + lx)*s, 34*s, (20 + lx)*s, 42*s], fill=(220, 140, 150))
-        d.ellipse([(28 + rx)*s, 34*s, (34 + rx)*s, 42*s], fill=(220, 140, 150))
-        # Body
-        d.ellipse([12*s, 16*s, 36*s, 38*s], fill=(95, 100, 120))
-        d.ellipse([14*s, 18*s, 34*s, 36*s], fill=(130, 135, 155))
-        # Big Ears
-        d.ellipse([10*s, 8*s, 22*s, 20*s], fill=(180, 110, 125))
-        d.ellipse([26*s, 8*s, 38*s, 20*s], fill=(180, 110, 125))
-        # Glowing Zombie Red Eyes
-        d.ellipse([18*s, 20*s, 23*s, 26*s], fill=(255, 30, 30))
-        d.ellipse([25*s, 20*s, 30*s, 26*s], fill=(255, 30, 30))
+        d.ellipse([10*s, 36*s, 38*s, 44*s], fill=(0, 0, 0, 85))
+        # Tail whipping with dark outline
+        d.arc([4*s, (18 + ty)*s, 22*s, (38 + ty)*s], 90, 270, fill=(18, 14, 24), width=4*s)
+        d.arc([4*s, (18 + ty)*s, 22*s, (38 + ty)*s], 90, 270, fill=(210, 110, 130), width=2*s)
+        # Scurrying Paws with dark outline
+        d.ellipse([(13 + lx)*s, 33*s, (21 + lx)*s, 43*s], fill=(18, 14, 24))
+        d.ellipse([(14 + lx)*s, 34*s, (20 + lx)*s, 42*s], fill=(240, 160, 170))
+        d.ellipse([(27 + rx)*s, 33*s, (35 + rx)*s, 43*s], fill=(18, 14, 24))
+        d.ellipse([(28 + rx)*s, 34*s, (34 + rx)*s, 42*s], fill=(240, 160, 170))
+        # Body dark ink outline
+        d.ellipse([10*s, 14*s, 38*s, 40*s], fill=(18, 14, 24))
+        # Body dark slate coat (high contrast against green lawn and golden plaza!)
+        d.ellipse([12*s, 16*s, 36*s, 38*s], fill=(55, 60, 75))
+        d.ellipse([14*s, 18*s, 34*s, 36*s], fill=(80, 86, 105))
+        # Big Ears with dark outline
+        d.ellipse([9*s, 7*s, 23*s, 21*s], fill=(18, 14, 24))
+        d.ellipse([10*s, 8*s, 22*s, 20*s], fill=(220, 120, 140))
+        d.ellipse([25*s, 7*s, 39*s, 21*s], fill=(18, 14, 24))
+        d.ellipse([26*s, 8*s, 38*s, 20*s], fill=(220, 120, 140))
+        # Glowing Demonic Crimson Red Eyes with Yellow Core! (Instantly spotted!)
+        d.ellipse([16*s, 18*s, 24*s, 27*s], fill=(255, 20, 20))
+        d.ellipse([24*s, 18*s, 32*s, 27*s], fill=(255, 20, 20))
+        d.ellipse([18*s, 20*s, 22*s, 25*s], fill=(255, 235, 60))
+        d.ellipse([26*s, 20*s, 30*s, 25*s], fill=(255, 235, 60))
         d.ellipse([19*s, 21*s, 21*s, 23*s], fill=(255, 255, 255))
-        d.ellipse([26*s, 21*s, 28*s, 23*s], fill=(255, 255, 255))
+        d.ellipse([27*s, 21*s, 29*s, 23*s], fill=(255, 255, 255))
         # Snout
-        d.ellipse([21*s, 26*s, 27*s, 31*s], fill=(240, 150, 165))
+        d.ellipse([21*s, 26*s, 27*s, 31*s], fill=(255, 170, 185))
         frames.append(img)
     assemble_spritesheet(frames, fw, fh, "enemy_mouse_walk.png")
 
@@ -225,22 +250,28 @@ def generate_dog_sheet():
     steps = [(-8, 6, 2, -4), (0, 0, 8, 4), (8, -6, 4, -2), (3, -2, 10, 6)]
     for f_idx, (lx, rx, jaw, ear) in enumerate(steps):
         img, d, s = create_frame(fw, fh)
-        d.ellipse([12*s, 44*s, 44*s, 52*s], fill=(0, 0, 0, 65))
-        # Paws bounding
+        d.ellipse([12*s, 44*s, 44*s, 52*s], fill=(0, 0, 0, 85))
+        # Paws bounding with outline
+        d.ellipse([(13 + lx)*s, 37*s, (23 + lx)*s, 49*s], fill=(25, 18, 14))
         d.ellipse([(14 + lx)*s, 38*s, (22 + lx)*s, 48*s], fill=(70, 50, 40))
+        d.ellipse([(33 + rx)*s, 37*s, (43 + rx)*s, 49*s], fill=(25, 18, 14))
         d.ellipse([(34 + rx)*s, 38*s, (42 + rx)*s, 48*s], fill=(70, 50, 40))
-        # Dog body
-        d.ellipse([14*s, 20*s, 42*s, 44*s], fill=(110, 80, 65))
-        # Head & Jaws
-        d.ellipse([16*s, 10*s, 40*s, 34*s], fill=(130, 95, 75))
+        # Dog body with dark ink outline
+        d.ellipse([12*s, 18*s, 44*s, 46*s], fill=(25, 18, 14))
+        d.ellipse([14*s, 20*s, 42*s, 44*s], fill=(110, 75, 55))
+        # Head with dark outline
+        d.ellipse([14*s, 8*s, 42*s, 36*s], fill=(25, 18, 14))
+        d.ellipse([16*s, 10*s, 40*s, 34*s], fill=(135, 95, 70))
         # Floppy ears
-        d.polygon([(14*s, 14*s), ((8 + ear)*s, 26*s), (18*s, 22*s)], fill=(80, 55, 45))
-        d.polygon([(38*s, 14*s), ((44 - ear)*s, 26*s), (34*s, 22*s)], fill=(80, 55, 45))
-        # Angry eyes
-        d.polygon([(20*s, 16*s), (26*s, 20*s), (22*s, 22*s)], fill=(255, 50, 30))
-        d.polygon([(36*s, 16*s), (30*s, 20*s), (34*s, 22*s)], fill=(255, 50, 30))
+        d.polygon([(14*s, 14*s), ((8 + ear)*s, 26*s), (18*s, 22*s)], fill=(65, 42, 32))
+        d.polygon([(38*s, 14*s), ((44 - ear)*s, 26*s), (34*s, 22*s)], fill=(65, 42, 32))
+        # Glowing Angry Red Eyes with yellow core
+        d.polygon([(19*s, 15*s), (27*s, 21*s), (21*s, 23*s)], fill=(255, 20, 10))
+        d.polygon([(37*s, 15*s), (29*s, 21*s), (35*s, 23*s)], fill=(255, 20, 10))
+        d.circle([(23*s), (19*s)], radius=1*s, fill=(255, 235, 60))
+        d.circle([(33*s), (19*s)], radius=1*s, fill=(255, 235, 60))
         # Snapping Snout & Sharp Teeth
-        d.rounded_rectangle([22*s, 22*s, 34*s, (32 + jaw)*s], radius=3*s, fill=(50, 35, 30))
+        d.rounded_rectangle([22*s, 22*s, 34*s, (32 + jaw)*s], radius=3*s, fill=(40, 25, 20))
         # White fangs
         d.polygon([(24*s, 26*s), (26*s, (30 + jaw)*s), (28*s, 26*s)], fill=(255, 255, 255))
         d.polygon([(30*s, 26*s), (32*s, (30 + jaw)*s), (34*s, 26*s)], fill=(255, 255, 255))
@@ -260,27 +291,31 @@ def generate_cucumber_sheet():
     ]
     for f_idx, (sx, sy, arm_deg, pe) in enumerate(steps):
         img, d, s = create_frame(fw, fh)
-        d.ellipse([(14 - sx)*s, 40*s, (34 + sx)*s, 46*s], fill=(0, 0, 0, 50))
-        # Cucumber Pickle Body
+        d.ellipse([(14 - sx)*s, 40*s, (34 + sx)*s, 46*s], fill=(0, 0, 0, 70))
+        # Cucumber Pickle Body with dark outline
         bx1, by1 = (16 - sx)*s, (8 - sy)*s
         bx2, by2 = (32 + sx)*s, (42)*s
-        d.rounded_rectangle([bx1, by1, bx2, by2], radius=8*s, fill=(45, 140, 55), outline=(25, 90, 35), width=2*s)
+        d.rounded_rectangle([bx1 - 2*s, by1 - 2*s, bx2 + 2*s, by2 + 2*s], radius=9*s, fill=(15, 50, 22))
+        d.rounded_rectangle([bx1, by1, bx2, by2], radius=8*s, fill=(45, 155, 60), outline=(25, 95, 35), width=2*s)
         # Pickle warts / bumps
-        d.ellipse([(20 - sx)*s, (14 - sy)*s, (24 - sx)*s, (18 - sy)*s], fill=(30, 110, 40))
-        d.ellipse([(24 + sx)*s, (24)*s, (28 + sx)*s, (28)*s], fill=(30, 110, 40))
+        d.ellipse([(20 - sx)*s, (14 - sy)*s, (24 - sx)*s, (18 - sy)*s], fill=(25, 110, 35))
+        d.ellipse([(24 + sx)*s, (24)*s, (28 + sx)*s, (28)*s], fill=(25, 110, 35))
         # Goofy flailing arms
         rad = math.radians(arm_deg)
         ax = math.sin(rad) * 10
         ay = math.cos(rad) * 10
-        d.line([(bx1 + 2*s), 24*s, int((bx1 - 6*s - ax*s)), int((24*s + ay*s))], fill=(35, 120, 45), width=3*s)
-        d.line([(bx2 - 2*s), 24*s, int((bx2 + 6*s + ax*s)), int((24*s - ay*s))], fill=(35, 120, 45), width=3*s)
-        # Big Crazy Meme Eyes
-        d.ellipse([18*s, (14 - sy//2)*s, 26*s, (22 - sy//2)*s], fill=(255, 255, 255), outline=(0, 0, 0), width=1*s)
-        d.ellipse([26*s, (13 - sy//2)*s, 34*s, (21 - sy//2)*s], fill=(255, 255, 255), outline=(0, 0, 0), width=1*s)
+        d.line([(bx1 + 2*s), 24*s, int((bx1 - 6*s - ax*s)), int((24*s + ay*s))], fill=(30, 110, 40), width=4*s)
+        d.line([(bx2 - 2*s), 24*s, int((bx2 + 6*s + ax*s)), int((24*s - ay*s))], fill=(30, 110, 40), width=4*s)
+        # Big Crazy Meme Eyes with sharp dark border
+        d.ellipse([17*s, (13 - sy//2)*s, 27*s, (23 - sy//2)*s], fill=(0, 0, 0))
+        d.ellipse([25*s, (12 - sy//2)*s, 35*s, (22 - sy//2)*s], fill=(0, 0, 0))
+        d.ellipse([18*s, (14 - sy//2)*s, 26*s, (22 - sy//2)*s], fill=(255, 255, 255))
+        d.ellipse([26*s, (13 - sy//2)*s, 34*s, (21 - sy//2)*s], fill=(255, 255, 255))
         d.ellipse([(21 + pe)*s, (17 - sy//2)*s, (24 + pe)*s, (20 - sy//2)*s], fill=(0, 0, 0))
         d.ellipse([(29 - pe)*s, (16 - sy//2)*s, (32 - pe)*s, (19 - sy//2)*s], fill=(0, 0, 0))
         # Shocked 'O' mouth
-        d.ellipse([21*s, (26 - sy//2)*s, 29*s, (33 - sy//2)*s], fill=(120, 20, 20), outline=(20, 70, 30), width=1*s)
+        d.ellipse([20*s, (25 - sy//2)*s, 30*s, (34 - sy//2)*s], fill=(15, 50, 22))
+        d.ellipse([21*s, (26 - sy//2)*s, 29*s, (33 - sy//2)*s], fill=(150, 25, 25))
         frames.append(img)
     assemble_spritesheet(frames, fw, fh, "enemy_cucumber_hop.png")
 
@@ -292,20 +327,26 @@ def generate_pigeon_sheet():
     steps = [(-10, -2, 2), (-2, 6, 0), (8, 14, -2), (0, 4, 1)]
     for f_idx, (wy1, wy2, hb) in enumerate(steps):
         img, d, s = create_frame(fw, fh)
-        d.ellipse([16*s, 38*s, 32*s, 44*s], fill=(0, 0, 0, 45))
-        # Wings Flapping
-        d.polygon([(24*s, 22*s), (4*s, (20 + wy1)*s), (10*s, (30 + wy2)*s)], fill=(120, 130, 145))
-        d.polygon([(24*s, 22*s), (44*s, (20 + wy1)*s), (38*s, (30 + wy2)*s)], fill=(120, 130, 145))
-        # Body
-        d.ellipse([16*s, 16*s, 32*s, 36*s], fill=(145, 155, 170))
-        d.ellipse([18*s, 22*s, 30*s, 32*s], fill=(110, 185, 150)) # iridescent neck
-        # Head with bobbing
-        d.ellipse([18*s, (10 + hb)*s, 30*s, (22 + hb)*s], fill=(160, 170, 185))
-        # Derpy pigeon eye
-        d.ellipse([26*s, (12 + hb)*s, 30*s, (16 + hb)*s], fill=(255, 140, 20))
+        d.ellipse([16*s, 38*s, 32*s, 44*s], fill=(0, 0, 0, 70))
+        # Wings Flapping with Dark Outline
+        d.polygon([(24*s, 22*s), (2*s, (19 + wy1)*s), (8*s, (31 + wy2)*s)], fill=(18, 22, 30))
+        d.polygon([(24*s, 22*s), (4*s, (20 + wy1)*s), (10*s, (30 + wy2)*s)], fill=(85, 98, 120))
+        d.polygon([(24*s, 22*s), (46*s, (19 + wy1)*s), (40*s, (31 + wy2)*s)], fill=(18, 22, 30))
+        d.polygon([(24*s, 22*s), (44*s, (20 + wy1)*s), (38*s, (30 + wy2)*s)], fill=(85, 98, 120))
+        # Body dark outline
+        d.ellipse([14*s, 14*s, 34*s, 38*s], fill=(18, 22, 30))
+        d.ellipse([16*s, 16*s, 32*s, 36*s], fill=(95, 108, 130))
+        # Glowing iridescent emerald/purple neck collar
+        d.ellipse([17*s, 21*s, 31*s, 33*s], fill=(20, 220, 160))
+        # Head with dark outline
+        d.ellipse([16*s, (8 + hb)*s, 32*s, (24 + hb)*s], fill=(18, 22, 30))
+        d.ellipse([18*s, (10 + hb)*s, 30*s, (22 + hb)*s], fill=(110, 125, 150))
+        # Fiery glowing orange pigeon eye
+        d.ellipse([25*s, (11 + hb)*s, 31*s, (17 + hb)*s], fill=(255, 110, 10))
         d.ellipse([27*s, (13 + hb)*s, 29*s, (15 + hb)*s], fill=(0, 0, 0))
-        # Yellow Beak
-        d.polygon([(30*s, (15 + hb)*s), (36*s, (17 + hb)*s), (30*s, (19 + hb)*s)], fill=(255, 200, 40))
+        # Bright Yellow Beak
+        d.polygon([(30*s, (14 + hb)*s), (37*s, (17 + hb)*s), (30*s, (20 + hb)*s)], fill=(18, 22, 30))
+        d.polygon([(30*s, (15 + hb)*s), (36*s, (17 + hb)*s), (30*s, (19 + hb)*s)], fill=(255, 210, 30))
         frames.append(img)
     assemble_spritesheet(frames, fw, fh, "enemy_pigeon_fly.png")
 
@@ -317,20 +358,24 @@ def generate_spitter_sheet():
     steps = [(0, 0), (2, 4), (5, 8), (3, 2)]
     for f_idx, (sac, drop) in enumerate(steps):
         img, d, s = create_frame(fw, fh)
-        d.ellipse([12*s, 38*s, 36*s, 44*s], fill=(0, 0, 0, 55))
-        # Ghoulish Robe Body
-        d.polygon([(16*s, 18*s), (32*s, 18*s), (36*s, 40*s), (12*s, 40*s)], fill=(50, 60, 55))
-        # Head
-        d.ellipse([16*s, 8*s, 32*s, 24*s], fill=(70, 110, 80))
-        # Swelling Toxic Acid Throat Sac!
-        d.ellipse([(20 - sac)*s, (16 - sac//2)*s, (28 + sac)*s, (26 + sac)*s], fill=(46, 204, 113))
-        d.ellipse([(22 - sac)*s, (18 - sac//2)*s, (26 + sac)*s, (24 + sac)*s], fill=(160, 255, 180))
+        d.ellipse([12*s, 38*s, 36*s, 44*s], fill=(0, 0, 0, 80))
+        # Dark Robe with outline
+        d.polygon([(14*s, 16*s), (34*s, 16*s), (38*s, 42*s), (10*s, 42*s)], fill=(18, 22, 20))
+        d.polygon([(16*s, 18*s), (32*s, 18*s), (36*s, 40*s), (12*s, 40*s)], fill=(40, 50, 45))
+        # Head with dark outline
+        d.ellipse([14*s, 6*s, 34*s, 26*s], fill=(18, 22, 20))
+        d.ellipse([16*s, 8*s, 32*s, 24*s], fill=(60, 95, 70))
+        # Swelling Radiant Toxic Acid Throat Sac!
+        d.ellipse([(19 - sac)*s, (15 - sac//2)*s, (29 + sac)*s, (27 + sac)*s], fill=(0, 255, 120))
+        d.ellipse([(21 - sac)*s, (17 - sac//2)*s, (27 + sac)*s, (25 + sac)*s], fill=(180, 255, 200))
         # Toxic Slime Drip
         if drop > 0:
-            d.ellipse([23*s, (26 + drop)*s, 25*s, (29 + drop)*s], fill=(46, 204, 113))
+            d.ellipse([23*s, (26 + drop)*s, 25*s, (29 + drop)*s], fill=(0, 255, 120))
         # Sickly Yellow Glowing Eyes
-        d.ellipse([19*s, 12*s, 23*s, 16*s], fill=(241, 196, 15))
-        d.ellipse([25*s, 12*s, 29*s, 16*s], fill=(241, 196, 15))
+        d.ellipse([18*s, 11*s, 24*s, 17*s], fill=(255, 230, 0))
+        d.ellipse([24*s, 11*s, 30*s, 17*s], fill=(255, 230, 0))
+        d.ellipse([20*s, 13*s, 22*s, 15*s], fill=(0, 0, 0))
+        d.ellipse([26*s, 13*s, 28*s, 15*s], fill=(0, 0, 0))
         frames.append(img)
     assemble_spritesheet(frames, fw, fh, "enemy_spitter_walk.png")
 

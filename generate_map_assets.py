@@ -18,62 +18,65 @@ def save_scaled(img, w, h, filename):
 
 # -------------------------------------------------------------
 # 1. SEAMLESS ARENA BASE FLOOR (128x128)
-# Lush emerald battleground with subtle cobblestone pavers,
-# soft grass texture, tiny clovers, and depth!
+# Lush emerald battleground with subtle warm terracotta pavers,
+# soft grass texture, tiny clovers, and rich contrast for enemies!
 # -------------------------------------------------------------
 def generate_tile_floor():
     w, h = 128, 128
     img, d, s = create_canvas(w, h)
     
-    # Base earthy meadow color
-    d.rectangle([0, 0, w*s, h*s], fill=(76, 125, 68))
+    # Base deep emerald lawn color
+    d.rectangle([0, 0, w*s, h*s], fill=(45, 92, 42))
     
-    # Organic grass shades grid
+    # Organic lawn variations (subtle diagonal weave)
     for gx in range(0, w, 16):
         for gy in range(0, h, 16):
-            shade = 72 + ((gx * 7 + gy * 13) % 18)
-            d.rectangle([gx*s, gy*s, (gx+16)*s, (gy+16)*s], fill=(shade - 5, shade + 50, shade - 8))
+            shade = 42 + ((gx * 7 + gy * 13) % 12)
+            d.rectangle([gx*s, gy*s, (gx+16)*s, (gy+16)*s], fill=(shade - 4, shade + 48, shade - 6))
             
-    # Subtle sunken cobblestone pavers embedded in grass
+    # Warm terracotta & sun-baked earth garden pavers (NOT grey so grey enemies never blend!)
     stones = [
         (12, 14, 28, 26), (46, 10, 68, 24), (88, 16, 114, 30),
         (20, 52, 44, 68), (72, 48, 98, 64), (106, 56, 124, 72),
         (8, 92, 34, 110), (52, 88, 76, 106), (92, 94, 118, 116)
     ]
     for x1, y1, x2, y2 in stones:
-        d.rounded_rectangle([x1*s, y1*s, x2*s, y2*s], radius=4*s, fill=(95, 105, 92), outline=(65, 75, 62), width=1*s)
-        d.rounded_rectangle([(x1+2)*s, (y1+2)*s, (x2-2)*s, (y2-2)*s], radius=3*s, fill=(115, 125, 110))
-        # Highlight edge
-        d.line([(x1+3)*s, (y1+2)*s, (x2-3)*s, (y1+2)*s], fill=(140, 150, 135), width=1*s)
+        # Dark earth mortar
+        d.rounded_rectangle([x1*s, y1*s, x2*s, y2*s], radius=4*s, fill=(68, 50, 36), outline=(48, 34, 24), width=1*s)
+        # Warm terracotta brick
+        d.rounded_rectangle([(x1+2)*s, (y1+2)*s, (x2-2)*s, (y2-2)*s], radius=3*s, fill=(108, 80, 58))
+        # Warm amber highlight edge
+        d.line([(x1+3)*s, (y1+2)*s, (x2-3)*s, (y1+2)*s], fill=(132, 100, 74), width=1*s)
         
     # Tiny grass blades & clover specks
     for bx in range(4, w, 8):
         for by in range(4, h, 8):
             seed = (bx * 31 + by * 17) % 10
             if seed < 4:
-                d.line([bx*s, by*s, (bx+2)*s, (by-4)*s], fill=(130, 200, 90), width=1*s)
-                d.line([bx*s, by*s, (bx-2)*s, (by-3)*s], fill=(110, 180, 80), width=1*s)
+                d.line([bx*s, by*s, (bx+2)*s, (by-4)*s], fill=(95, 175, 75), width=1*s)
+                d.line([bx*s, by*s, (bx-2)*s, (by-3)*s], fill=(75, 150, 65), width=1*s)
             elif seed == 5:
-                # White/Yellow tiny daisy
-                d.circle([(bx*s), (by*s)], radius=2*s, fill=(255, 245, 180))
+                # Golden buttercup flower
+                d.circle([(bx*s), (by*s)], radius=2*s, fill=(255, 220, 80))
                 
     save_scaled(img, w, h, "tile_floor.png")
 
 # -------------------------------------------------------------
 # 2. CENTRAL ROYAL CAT PLAZA (440x440)
-# Magnificent circular stone courtyard with golden cat paw crest!
+# Magnificent warm golden sandstone courtyard with golden cat paw crest!
+# (Warm golden/terracotta/slate palette so grey/blue enemies stand out!)
 # -------------------------------------------------------------
 def generate_map_plaza():
     w, h = 440, 440
     img, d, s = create_canvas(w, h)
     cx, cy = (w // 2) * s, (h // 2) * s
     
-    # Outer dark stone rim
-    d.circle([cx, cy], radius=210*s, fill=(80, 88, 85, 220), outline=(50, 58, 55), width=3*s)
+    # Outer dark bronze-slate rim
+    d.circle([cx, cy], radius=210*s, fill=(42, 38, 46, 230), outline=(28, 24, 32), width=3*s)
     
-    # Concentric carved Roman paver rings
-    d.circle([cx, cy], radius=195*s, fill=(130, 138, 132), outline=(90, 98, 92), width=2*s)
-    d.circle([cx, cy], radius=170*s, fill=(110, 118, 112), outline=(75, 82, 78), width=2*s)
+    # Concentric carved warm sandstone paver rings
+    d.circle([cx, cy], radius=195*s, fill=(175, 150, 118), outline=(115, 95, 72), width=2*s)
+    d.circle([cx, cy], radius=170*s, fill=(155, 130, 100), outline=(100, 80, 60), width=2*s)
     
     # Radial stone pavers (36 spokes)
     for ang in range(0, 360, 15):
@@ -82,25 +85,25 @@ def generate_map_plaza():
         y1 = cy + math.sin(rad) * 115 * s
         x2 = cx + math.cos(rad) * 190 * s
         y2 = cy + math.sin(rad) * 190 * s
-        d.line([(x1, y1), (x2, y2)], fill=(75, 82, 78), width=2*s)
+        d.line([(x1, y1), (x2, y2)], fill=(105, 85, 65), width=2*s)
         
-    # Inner courtyard tier
-    d.circle([cx, cy], radius=115*s, fill=(150, 158, 152), outline=(100, 108, 102), width=3*s)
-    d.circle([cx, cy], radius=90*s, fill=(170, 178, 170), outline=(120, 128, 120), width=2*s)
+    # Inner courtyard tier (warm ivory sandstone)
+    d.circle([cx, cy], radius=115*s, fill=(195, 172, 138), outline=(130, 108, 80), width=3*s)
+    d.circle([cx, cy], radius=90*s, fill=(215, 192, 158), outline=(150, 128, 98), width=2*s)
     
-    # Inner golden medallion ring
-    d.circle([cx, cy], radius=70*s, fill=(55, 60, 68), outline=(218, 165, 32), width=4*s)
-    d.circle([cx, cy], radius=62*s, fill=(70, 75, 85))
+    # Inner royal dark medallion ring with 24K gold trim
+    d.circle([cx, cy], radius=70*s, fill=(45, 40, 52), outline=(218, 165, 32), width=4*s)
+    d.circle([cx, cy], radius=62*s, fill=(55, 48, 64))
     
     # Radiant Golden Cat Paw Emblem in Center!
     # Main palm pad
-    d.ellipse([cx - 26*s, cy - 8*s, cx + 26*s, cy + 32*s], fill=(241, 196, 15), outline=(180, 130, 10), width=2*s)
-    d.ellipse([cx - 22*s, cy - 4*s, cx + 22*s, cy + 28*s], fill=(255, 220, 50))
+    d.ellipse([cx - 26*s, cy - 8*s, cx + 26*s, cy + 32*s], fill=(255, 205, 30), outline=(190, 140, 10), width=2*s)
+    d.ellipse([cx - 22*s, cy - 4*s, cx + 22*s, cy + 28*s], fill=(255, 235, 80))
     # 4 Toe beans
     toe_offsets = [(-22, -22), (-8, -32), (8, -32), (22, -22)]
     for tx, ty in toe_offsets:
-        d.ellipse([cx + tx*s - 7*s, cy + ty*s - 9*s, cx + tx*s + 7*s, cy + ty*s + 9*s], fill=(241, 196, 15), outline=(180, 130, 10), width=2*s)
-        d.ellipse([cx + tx*s - 5*s, cy + ty*s - 7*s, cx + tx*s + 5*s, cy + ty*s + 7*s], fill=(255, 220, 50))
+        d.ellipse([cx + tx*s - 7*s, cy + ty*s - 9*s, cx + tx*s + 7*s, cy + ty*s + 9*s], fill=(255, 205, 30), outline=(190, 140, 10), width=2*s)
+        d.ellipse([cx + tx*s - 5*s, cy + ty*s - 7*s, cx + tx*s + 5*s, cy + ty*s + 7*s], fill=(255, 235, 80))
         
     save_scaled(img, w, h, "map_plaza.png")
 
@@ -278,6 +281,38 @@ def generate_boundary_wall():
     d.line([48*s, 20*s, 48*s, 35*s], fill=(45, 50, 55), width=1*s)
     save_scaled(img, w, h, "boundary_wall.png")
 
+# -------------------------------------------------------------
+# 9. CHARACTER & ENEMY DROP SHADOW (48x24)
+# Soft elliptical radial gradient shadow that lifts entities off ground
+# -------------------------------------------------------------
+def generate_shadow():
+    w, h = 48, 24
+    img, d, s = create_canvas(w, h)
+    cx, cy = (w // 2) * s, (h // 2) * s
+    for r in range(22, 0, -1):
+        # Quadratic smooth falloff
+        alpha = int(120 * (1.0 - (r / 22.0)**1.5))
+        rx = int(r * 2.1 * s)
+        ry = int(r * 1.0 * s)
+        d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=(0, 0, 0, alpha))
+    save_scaled(img, w, h, "shadow_char.png")
+
+# -------------------------------------------------------------
+# 10. ENEMY DANGER THREAT RING (48x26)
+# Subtle pulsing red danger marker under enemies for instant detection
+# -------------------------------------------------------------
+def generate_threat_ring():
+    w, h = 48, 26
+    img, d, s = create_canvas(w, h)
+    cx, cy = (w // 2) * s, (h // 2) * s
+    # Outer danger glow
+    for r in range(20, 14, -1):
+        alpha = int(60 * (1.0 - ((r - 14) / 6.0)))
+        d.ellipse([cx - int(r*2.1*s), cy - int(r*1.0*s), cx + int(r*2.1*s), cy + int(r*1.0*s)], outline=(255, 40, 40, alpha), width=1*s)
+    # Inner crisp danger ellipse
+    d.ellipse([cx - 30*s, cy - 14*s, cx + 30*s, cy + 14*s], fill=(220, 20, 20, 40), outline=(255, 50, 50, 160), width=2*s)
+    save_scaled(img, w, h, "enemy_threat_ring.png")
+
 if __name__ == "__main__":
     print("Generating Complete Procedural Map Graphics...")
     generate_tile_floor()
@@ -288,4 +323,6 @@ if __name__ == "__main__":
     generate_fence()
     generate_decals()
     generate_boundary_wall()
+    generate_shadow()
+    generate_threat_ring()
     print("All Map Graphics Generated Successfully!")
