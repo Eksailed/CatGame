@@ -925,12 +925,13 @@ class GameScene extends Phaser.Scene {
             }
 
             if (this.evacCountdown <= 0) {
-                const center = this.arenaSize / 2;
-                const distToHelipad = Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center);
-                if (distToHelipad < 160) {
+                const targetX = this.helipad ? this.helipad.x : (this.arenaSize / 2);
+                const targetY = this.helipad ? this.helipad.y : (this.arenaSize / 2);
+                const distToHelipad = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
+                if (distToHelipad < 300 || this.level >= 2) {
                     this.executeHelicopterRescue();
                 } else if (this.survivalTime % 3 === 0) {
-                    this.showDamageText(this.player.x, this.player.y - 50, '🚁 ВЕРТОЛЁТ ЖДЁТ В ЦЕНТРЕ! БЕГИ! 🚁', '#f1c40f');
+                    this.showDamageText(this.player.x, this.player.y - 50, '🚁 ВЕРТОЛЁТ ЖДЁТ НА ПЛОЩАДКЕ! БЕГИ! 🚁', '#f1c40f');
                     if (window.soundManager) window.soundManager.playEvacAlarm();
                 }
             }
@@ -2294,6 +2295,15 @@ class GameScene extends Phaser.Scene {
     }
 
     onLevelUp() {
+        // [ВРЕМЕННО ДЛЯ ТЕСТА]: Запуск эвакуации по достижении 2 уровня
+        if (this.level >= 2 && !this.evacTriggered) {
+            this.startEvacuationSequence();
+            this.evacCountdown = 5; // Быстрый тест: 5 секунд до посадки
+            const countEl = document.getElementById('evac-countdown');
+            if (countEl) countEl.innerText = '5';
+            return;
+        }
+
         if (window.soundManager) window.soundManager.playLevelUp();
         this.pauseGame();
         if (window.uiManager) {
@@ -2711,9 +2721,12 @@ class GameScene extends Phaser.Scene {
         if (window.soundManager) window.soundManager.playEvacAlarm();
 
         const center = this.arenaSize / 2;
-        // Spawn glowing landing pad at center of the plaza
+        // Spawn glowing landing pad at center of the plaza (or near player if away)
+        const padX = (Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center) < 350) ? center : this.player.x;
+        const padY = (Phaser.Math.Distance.Between(this.player.x, this.player.y, center, center) < 350) ? center : this.player.y;
+
         if (!this.helipad) {
-            this.helipad = this.add.image(center, center, 'helipad_zone');
+            this.helipad = this.add.image(padX, padY, 'helipad_zone');
             this.helipad.setDepth(2);
             this.helipad.setScale(1.2);
             this.tweens.add({
@@ -2744,8 +2757,8 @@ class GameScene extends Phaser.Scene {
         this.isDashing = false;
 
         const center = this.arenaSize / 2;
-        const targetX = center;
-        const targetY = center - 20;
+        const targetX = this.helipad ? this.helipad.x : center;
+        const targetY = (this.helipad ? this.helipad.y : center) - 20;
 
         if (window.soundManager) window.soundManager.playChopperRotor();
 
