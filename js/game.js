@@ -2291,21 +2291,13 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.shake(250, 0.02);
         if (window.soundManager) window.soundManager.playExplosion();
 
-        // Epicenter explosion FX & blast radius damage
+        // Epicenter explosion FX
         if (bx !== null && by !== null) {
             const exp = this.add.sprite(bx, by, 'fx_mine_explosion');
             exp.setDepth(16);
             exp.setScale(1.8);
             exp.play('mine_explosion');
             exp.on('animationcomplete', () => exp.destroy());
-
-            // Player caught in the bomb explosion radius takes damage!
-            if (this.player && this.player.active) {
-                const distToPlayer = Phaser.Math.Distance.Between(bx, by, this.player.x, this.player.y);
-                if (distToPlayer <= 95) {
-                    this.applyPlayerDamage(20, bx, by, false, true);
-                }
-            }
         }
 
         const bounds = this.cameras.main.worldView;
