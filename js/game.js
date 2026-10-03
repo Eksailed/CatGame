@@ -62,9 +62,11 @@ class BootScene extends Phaser.Scene {
         this.load.image('skill_static', 'assets/skill_static.png');
 
         // Animated Valerian & Mine Spritesheets
-        this.load.spritesheet('proj_valerian_spin', 'assets/proj_valerian_spin.png', { frameWidth: 48, frameHeight: 48 });
-        this.load.spritesheet('evo_valerian_spin', 'assets/evo_valerian_spin.png', { frameWidth: 54, frameHeight: 54 });
-        this.load.spritesheet('fx_valerian_splash', 'assets/fx_valerian_splash.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('proj_valerian_spin', 'assets/proj_valerian_spin.png', { frameWidth: 56, frameHeight: 56 });
+        this.load.spritesheet('evo_valerian_spin', 'assets/evo_valerian_spin.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('fx_valerian_splash', 'assets/fx_valerian_splash.png', { frameWidth: 96, frameHeight: 96 });
+        this.load.spritesheet('fx_valerian_puddle_loop', 'assets/fx_valerian_puddle_loop.png', { frameWidth: 96, frameHeight: 96 });
+        this.load.spritesheet('fx_valerian_vortex_loop', 'assets/fx_valerian_vortex_loop.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('proj_mine_sheet', 'assets/proj_mine_sheet.png', { frameWidth: 48, frameHeight: 48 });
         this.load.spritesheet('fx_mine_explosion', 'assets/fx_mine_explosion.png', { frameWidth: 96, frameHeight: 96 });
 
@@ -223,21 +225,33 @@ class GameScene extends Phaser.Scene {
         // Valerian & Meow Mine Animated Effects
         this.anims.create({
             key: 'valerian_spin',
-            frames: this.anims.generateFrameNumbers('proj_valerian_spin', { start: 0, end: 3 }),
-            frameRate: 12,
+            frames: this.anims.generateFrameNumbers('proj_valerian_spin', { start: 0, end: 7 }),
+            frameRate: 18,
             repeat: -1
         });
         this.anims.create({
             key: 'valerian_storm_spin',
-            frames: this.anims.generateFrameNumbers('evo_valerian_spin', { start: 0, end: 3 }),
-            frameRate: 14,
+            frames: this.anims.generateFrameNumbers('evo_valerian_spin', { start: 0, end: 7 }),
+            frameRate: 20,
             repeat: -1
         });
         this.anims.create({
             key: 'valerian_splash',
-            frames: this.anims.generateFrameNumbers('fx_valerian_splash', { start: 0, end: 3 }),
-            frameRate: 14,
+            frames: this.anims.generateFrameNumbers('fx_valerian_splash', { start: 0, end: 7 }),
+            frameRate: 18,
             repeat: 0
+        });
+        this.anims.create({
+            key: 'valerian_puddle_anim',
+            frames: this.anims.generateFrameNumbers('fx_valerian_puddle_loop', { start: 0, end: 5 }),
+            frameRate: 8,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'valerian_vortex_anim',
+            frames: this.anims.generateFrameNumbers('fx_valerian_vortex_loop', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
         });
         this.anims.create({
             key: 'mine_arm_pulse',
@@ -1361,7 +1375,19 @@ class GameScene extends Phaser.Scene {
         flask.setScale(isEvo ? 1.25 : 1.05);
         flask.play(animKey);
 
-        const duration = 460;
+        const duration = 480;
+
+        // Dynamic ground shadow tracking flask flight
+        const shadow = this.add.ellipse(px, py + 12, 24, 12, 0x000000, 0.4);
+        shadow.setDepth(2);
+        this.tweens.add({
+            targets: shadow,
+            x: tx,
+            y: ty + 12,
+            duration: duration,
+            ease: 'Linear'
+        });
+
         // Parabolic arc: X moves linearly
         this.tweens.add({
             targets: flask,
@@ -1370,27 +1396,56 @@ class GameScene extends Phaser.Scene {
             ease: 'Linear'
         });
 
-        // Y arcs upwards first then plummets down
-        const peakY = Math.min(py, ty) - 80;
+        // Glowing particle trail emitted during flight
+        const trailTimer = this.time.addEvent({
+            delay: 45,
+            repeat: Math.floor(duration / 45),
+            callback: () => {
+                if (!flask || !flask.active) return;
+                const sparkle = this.add.circle(
+                    flask.x + Phaser.Math.Between(-3, 3),
+                    flask.y + Phaser.Math.Between(-3, 3),
+                    Phaser.Math.Between(2, 4),
+                    isEvo ? 0xebdef0 : 0xa9dfbf,
+                    0.85
+                );
+                sparkle.setDepth(13);
+                this.tweens.add({
+                    targets: sparkle,
+                    scale: 0.1,
+                    alpha: 0,
+                    y: sparkle.y + 10,
+                    duration: 220,
+                    onComplete: () => sparkle.destroy()
+                });
+            }
+        });
+
+        // Y arcs upwards first then plummets down with impact
+        const peakY = Math.min(py, ty) - 85;
         this.tweens.add({
             targets: flask,
             y: peakY,
             duration: duration * 0.45,
             ease: 'Quad.easeOut',
             onComplete: () => {
-                if (!flask || !flask.active) return;
+                if (!flask || !flask.active) {
+                    if (shadow && shadow.active) shadow.destroy();
+                    return;
+                }
                 this.tweens.add({
                     targets: flask,
                     y: ty,
                     duration: duration * 0.55,
                     ease: 'Quad.easeIn',
                     onComplete: () => {
+                        if (shadow && shadow.active) shadow.destroy();
                         if (flask && flask.active) flask.destroy();
 
                         // Splendid animated shattering splash!
                         const splash = this.add.sprite(tx, ty, 'fx_valerian_splash');
                         splash.setDepth(14);
-                        splash.setScale(isEvo ? 1.5 : 1.15);
+                        splash.setScale(isEvo ? 1.6 : 1.25);
                         if (isEvo) splash.setTint(0xd2b4de);
                         splash.play('valerian_splash');
                         splash.on('animationcomplete', () => splash.destroy());
@@ -1409,8 +1464,20 @@ class GameScene extends Phaser.Scene {
         const duration = isEvo ? 6500 : 4200;
         const dmgPerTick = (isEvo ? SKILLS_DATABASE.evo_valerian_storm.baseDamage : (SKILLS_DATABASE.valerian.baseDamage + (level - 1) * SKILLS_DATABASE.valerian.damagePerLevel)) * this.damageMultiplier;
 
-        const gfx = this.add.graphics();
-        gfx.setDepth(3);
+        // Animated looping ground puddle / vortex sprite
+        const puddleSprite = this.add.sprite(x, y, isEvo ? 'fx_valerian_vortex_loop' : 'fx_valerian_puddle_loop');
+        puddleSprite.setDepth(3);
+        const targetScale = isEvo ? (radius * 2 / 128) : (radius * 2 / 96);
+        puddleSprite.setScale(targetScale * 0.2);
+        puddleSprite.setAlpha(0.95);
+        puddleSprite.play(isEvo ? 'valerian_vortex_anim' : 'valerian_puddle_anim');
+
+        this.tweens.add({
+            targets: puddleSprite,
+            scale: targetScale,
+            duration: 280,
+            ease: 'Back.out'
+        });
 
         const puddle = {
             x,
@@ -1418,15 +1485,16 @@ class GameScene extends Phaser.Scene {
             radius,
             damage: dmgPerTick,
             duration,
+            maxDuration: duration,
             isEvo,
-            gfx,
+            sprite: puddleSprite,
             tickTimer: 0
         };
 
         this.valerianPuddles.push(puddle);
 
         // Animated bubbling droplets & herbal particles
-        for (let i = 0; i < (isEvo ? 12 : 8); i++) {
+        for (let i = 0; i < (isEvo ? 14 : 9); i++) {
             const part = this.add.circle(x, y, Phaser.Math.Between(3, 7), isEvo ? 0x9b59b6 : 0x2ecc71);
             part.setDepth(4);
             const ang = Phaser.Math.FloatBetween(0, Math.PI * 2);
@@ -1452,40 +1520,36 @@ class GameScene extends Phaser.Scene {
             p.duration -= delta;
             p.tickTimer += delta;
 
+            // Smooth fade out when puddle is about to expire
+            if (p.duration < 600 && p.sprite && p.sprite.active) {
+                p.sprite.setAlpha((p.duration / 600) * 0.95);
+            }
+
             if (p.duration <= 0) {
-                if (p.gfx) p.gfx.destroy();
+                if (p.sprite && p.sprite.active) p.sprite.destroy();
                 this.valerianPuddles.splice(i, 1);
                 continue;
             }
 
-            // Render rich animated toxic puddle
-            if (p.gfx && p.gfx.active) {
-                p.gfx.clear();
-                const pulse = 0.7 + Math.sin((time + p.x) / 130) * 0.15;
-                const corePulse = 0.85 + Math.cos((time + p.y) / 100) * 0.15;
-
-                // Outer toxic vapor ring
-                p.gfx.fillStyle(p.isEvo ? 0x5b2c6f : 0x196f3d, 0.22 * pulse);
-                p.gfx.fillCircle(p.x, p.y, p.radius);
-
-                // Main simmering potion pool
-                p.gfx.fillStyle(p.isEvo ? 0x8e44ad : 0x27ae60, 0.45 * pulse);
-                p.gfx.fillCircle(p.x, p.y, p.radius * 0.82);
-
-                // Radiant bubbling core
-                p.gfx.fillStyle(p.isEvo ? 0xd7bde2 : 0xa9dfbf, 0.65 * corePulse);
-                p.gfx.fillCircle(p.x, p.y, p.radius * 0.42);
-
-                // Pulsing outer ripple line
-                p.gfx.lineStyle(3, p.isEvo ? 0xebdef0 : 0xd5f5e3, 0.75 * pulse);
-                p.gfx.strokeCircle(p.x, p.y, p.radius);
-
-                // Swirling aromatic vapor arcs
-                const rot = (time * 0.003) % (Math.PI * 2);
-                p.gfx.lineStyle(2, p.isEvo ? 0xf5eef8 : 0xe8f8f5, 0.5 * corePulse);
-                p.gfx.beginPath();
-                p.gfx.arc(p.x, p.y, p.radius * 0.65, rot, rot + Math.PI * 0.8);
-                p.gfx.strokePath();
+            // Gentle rising aromatic herbal bubbles/sparks drifting upward
+            if (Math.random() < 0.28) {
+                const bubble = this.add.circle(
+                    p.x + Phaser.Math.Between(-p.radius * 0.55, p.radius * 0.55),
+                    p.y + Phaser.Math.Between(-p.radius * 0.35, p.radius * 0.35),
+                    Phaser.Math.Between(2, 4),
+                    p.isEvo ? 0xebdef0 : 0xa9dfbf,
+                    0.8
+                );
+                bubble.setDepth(5);
+                this.tweens.add({
+                    targets: bubble,
+                    y: bubble.y - Phaser.Math.Between(18, 30),
+                    alpha: 0,
+                    scale: 0.2,
+                    duration: 450,
+                    ease: 'Quad.easeOut',
+                    onComplete: () => bubble.destroy()
+                });
             }
 
             // Tick damage & apply slow safely
