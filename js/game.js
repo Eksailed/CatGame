@@ -313,10 +313,16 @@ class GameScene extends Phaser.Scene {
             left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-            dash: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+            dash: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+            esc: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)
         };
 
         this.wasd.dash.on('down', () => this.tryDash());
+        this.wasd.esc.on('down', () => {
+            if (window.uiManager) {
+                window.uiManager.togglePause();
+            }
+        });
         this.setupVirtualJoystick();
 
         // 7. Collisions & Overlaps

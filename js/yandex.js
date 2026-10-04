@@ -13,23 +13,25 @@ class PlatformSDKWrapper {
     async init() {
         const urlParams = new URLSearchParams(window.location.search);
         const hasVkParams = urlParams.has('vk_user_id') || urlParams.has('vk_app_id');
+        const inIframe = (window.parent !== window);
+        this.isInsideVK = hasVkParams || inIframe;
 
         // 1. Check for VK Bridge (VK Games)
-        if (typeof vkBridge !== 'undefined' || hasVkParams) {
+        if (typeof vkBridge !== 'undefined') {
             try {
-                if (typeof vkBridge !== 'undefined') {
-                    await vkBridge.send('VKWebAppInit');
-                    this.platform = 'vk';
-                    this.isInitialized = true;
-                    this.lang = 'ru';
-                    console.log('[PlatformSDK] VK Bridge initialized successfully!');
+                await vkBridge.send('VKWebAppInit');
+                this.platform = 'vk';
+                this.isInitialized = true;
+                this.lang = 'ru';
+                console.log('[PlatformSDK] VK Bridge initialized successfully! Inside VK:', this.isInsideVK);
 
-                    // Banner/Ad warm up
-                    try {
-                        await vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' });
-                    } catch (e) {}
-                    return true;
+                // Show bottom banner ad if running inside VK
+                if (this.isInsideVK) {
+                    setTimeout(() => {
+                        this.showBanner();
+                    }, 3500);
                 }
+                return true;
             } catch (err) {
                 console.warn('[PlatformSDK] VK Bridge init error, checking fallbacks:', err);
             }
@@ -77,6 +79,15 @@ class PlatformSDKWrapper {
         }
     }
 
+    // VK Sticky Banner Ad
+    showBanner() {
+        if (this.platform === 'vk' && typeof vkBridge !== 'undefined' && this.isInsideVK) {
+            vkBridge.send('VKWebAppShowBannerAd', { banner_location: 'bottom' })
+                .then(data => console.log('[PlatformSDK] VK Banner shown:', data))
+                .catch(err => console.warn('[PlatformSDK] VK Banner ad notice:', err));
+        }
+    }
+
     // Interstitial Ad with cooldown and sound auto-pause
     showInterstitial(onComplete = null) {
         const now = Date.now();
@@ -95,8 +106,18 @@ class PlatformSDKWrapper {
 
         // VK Games Ads
         if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
-            vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' })
+            if (!this.isInsideVK) {
+                console.log('[PlatformSDK] Local test outside VK iframe - mock interstitial passed');
+                this.lastInterstitialTime = Date.now();
+                restoreSound();
+                if (onComplete) onComplete(true);
+                return;
+            }
+
+            console.log('[PlatformSDK] Requesting VK Interstitial ad...');
+            vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial', use_waterfall: true })
                 .then(data => {
+                    console.log('[PlatformSDK] VK Interstitial ad shown:', data);
                     this.lastInterstitialTime = Date.now();
                     restoreSound();
                     if (onComplete) onComplete(data && data.result);
@@ -143,8 +164,18 @@ class PlatformSDKWrapper {
 
         // VK Games Rewarded Ads
         if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
-            vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
+            if (!this.isInsideVK) {
+                console.log('[PlatformSDK] Local test outside VK iframe - granting mock rewarded ad reward');
+                restoreSound();
+                if (onRewarded) onRewarded();
+                if (onClose) onClose(true);
+                return;
+            }
+
+            console.log('[PlatformSDK] Requesting VK Rewarded ad...');
+            vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_waterfall: true })
                 .then(data => {
+                    console.log('[PlatformSDK] VK Rewarded ad result:', data);
                     restoreSound();
                     if (data && data.result) {
                         if (onRewarded) onRewarded();

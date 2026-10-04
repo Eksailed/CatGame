@@ -172,17 +172,12 @@ class UIManager {
 
         // Pause button
         document.getElementById('btn-pause').addEventListener('click', () => {
-            if (!this.gameScene || this.gameScene.isGameOver) return;
-            if (window.soundManager) window.soundManager.playClick();
-            this.gameScene.pauseGame();
-            document.getElementById('modal-pause').classList.remove('hidden');
+            this.togglePause();
         });
 
         // Resume button
         document.getElementById('btn-resume').addEventListener('click', () => {
-            if (window.soundManager) window.soundManager.playClick();
-            document.getElementById('modal-pause').classList.add('hidden');
-            if (this.gameScene) this.gameScene.resumeGame();
+            this.togglePause();
         });
 
         // Pause to Menu button
@@ -190,6 +185,37 @@ class UIManager {
             if (window.soundManager) window.soundManager.playClick();
             document.getElementById('modal-pause').classList.add('hidden');
             this.exitToMenu();
+        });
+
+        // Global Esc Key Listener for Pause and Modal Navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc' || e.code === 'Escape') {
+                // If in menu modals, close them
+                const heroesModal = document.getElementById('modal-heroes');
+                const shopModal = document.getElementById('modal-shop');
+                const questsModal = document.getElementById('modal-quests');
+
+                if (heroesModal && !heroesModal.classList.contains('hidden')) {
+                    if (window.soundManager) window.soundManager.playClick();
+                    heroesModal.classList.add('hidden');
+                    return;
+                }
+                if (shopModal && !shopModal.classList.contains('hidden')) {
+                    if (window.soundManager) window.soundManager.playClick();
+                    shopModal.classList.add('hidden');
+                    this.renderMainMenu();
+                    return;
+                }
+                if (questsModal && !questsModal.classList.contains('hidden')) {
+                    if (window.soundManager) window.soundManager.playClick();
+                    questsModal.classList.add('hidden');
+                    this.renderMainMenu();
+                    return;
+                }
+
+                // In gameplay, toggle pause
+                this.togglePause();
+            }
         });
 
         // Mobile Dash button
@@ -1028,6 +1054,39 @@ class UIManager {
             window.soundManager.stopMusic();
         }
         this.renderMainMenu();
+    }
+
+    togglePause() {
+        if (!this.gameScene || this.gameScene.isGameOver) return;
+        const pauseModal = document.getElementById('modal-pause');
+        if (!pauseModal) return;
+
+        // If game screen is hidden, do nothing
+        const gameScreen = document.getElementById('screen-game');
+        if (gameScreen && gameScreen.classList.contains('hidden')) return;
+
+        // Don't toggle pause if blocking modal is active
+        const lvlModal = document.getElementById('modal-levelup');
+        const chestModal = document.getElementById('modal-chest');
+        const goModal = document.getElementById('modal-gameover');
+        const vicModal = document.getElementById('modal-victory');
+        const cutscene = document.getElementById('cutscene-overlay');
+        if (lvlModal && !lvlModal.classList.contains('hidden')) return;
+        if (chestModal && !chestModal.classList.contains('hidden')) return;
+        if (goModal && !goModal.classList.contains('hidden')) return;
+        if (vicModal && !vicModal.classList.contains('hidden')) return;
+        if (cutscene && !cutscene.classList.contains('hidden')) return;
+
+        if (window.soundManager) window.soundManager.playClick();
+
+        const isPaused = !pauseModal.classList.contains('hidden');
+        if (isPaused) {
+            pauseModal.classList.add('hidden');
+            this.gameScene.resumeGame();
+        } else {
+            this.gameScene.pauseGame();
+            pauseModal.classList.remove('hidden');
+        }
     }
 
     showJoystick(x, y) {
