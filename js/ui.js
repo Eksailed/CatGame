@@ -256,14 +256,22 @@ class UIManager {
             if (this.reviveUsedInRun) return;
             if (window.soundManager) window.soundManager.playClick();
             
+            const doRevive = () => {
+                this.reviveUsedInRun = true;
+                const scene = this.gameScene || (this.gameInstance && this.gameInstance.scene ? this.gameInstance.scene.getScene('GameScene') : null);
+                if (scene && typeof scene.revivePlayer === 'function') {
+                    scene.revivePlayer();
+                } else {
+                    this.hideGameOverModal();
+                }
+            };
+
             if (window.yandexSDK) {
                 window.yandexSDK.showRewarded(() => {
-                    this.reviveUsedInRun = true;
-                    if (this.gameScene) this.gameScene.revivePlayer();
+                    doRevive();
                 });
             } else {
-                this.reviveUsedInRun = true;
-                if (this.gameScene) this.gameScene.revivePlayer();
+                doRevive();
             }
         });
 

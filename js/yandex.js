@@ -88,6 +88,47 @@ class PlatformSDKWrapper {
         }
     }
 
+    // Helper UI Notification Toast
+    showToast(message, isWarning = false) {
+        try {
+            let toast = document.getElementById('sdk-notification-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'sdk-notification-toast';
+                toast.style.position = 'fixed';
+                toast.style.bottom = '80px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%)';
+                toast.style.background = 'rgba(25, 30, 42, 0.95)';
+                toast.style.color = '#fff';
+                toast.style.padding = '10px 22px';
+                toast.style.borderRadius = '30px';
+                toast.style.fontSize = '0.92rem';
+                toast.style.fontWeight = '700';
+                toast.style.boxShadow = '0 6px 20px rgba(0,0,0,0.6)';
+                toast.style.zIndex = '99999';
+                toast.style.pointerEvents = 'none';
+                toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                toast.style.border = '2px solid #f39c12';
+                toast.style.textAlign = 'center';
+                document.body.appendChild(toast);
+            }
+            toast.innerText = message;
+            toast.style.borderColor = isWarning ? '#e74c3c' : '#2ecc71';
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            if (this._toastTimer) clearTimeout(this._toastTimer);
+            this._toastTimer = setTimeout(() => {
+                if (toast) {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(-50%) translateY(10px)';
+                }
+            }, 3000);
+        } catch (e) {
+            console.log('[PlatformSDK Toast]', message);
+        }
+    }
+
     // Interstitial Ad with cooldown and sound auto-pause
     showInterstitial(onComplete = null) {
         const now = Date.now();
@@ -165,29 +206,40 @@ class PlatformSDKWrapper {
         // VK Games Rewarded Ads
         if (this.platform === 'vk' && typeof vkBridge !== 'undefined') {
             if (!this.isInsideVK) {
-                console.log('[PlatformSDK] Local test outside VK iframe - granting mock rewarded ad reward');
+                console.log('[PlatformSDK] Test mode outside VK iframe - granting mock reward');
                 restoreSound();
+                this.showToast('🎁 Тестовая награда получена!');
                 if (onRewarded) onRewarded();
                 if (onClose) onClose(true);
                 return;
             }
 
             console.log('[PlatformSDK] Requesting VK Rewarded ad...');
+            this.showToast('Загрузка рекламы...');
+
             vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_waterfall: true })
                 .then(data => {
                     console.log('[PlatformSDK] VK Rewarded ad result:', data);
                     restoreSound();
+                    // data.result === true means ad was watched and reward earned
                     if (data && data.result) {
+                        this.showToast('✨ Награда получена!');
                         if (onRewarded) onRewarded();
                         if (onClose) onClose(true);
                     } else {
+                        console.warn('[PlatformSDK] VK Rewarded ad closed without reward:', data);
+                        this.showToast('Реклама была пропущена', true);
                         if (onClose) onClose(false);
                     }
                 })
                 .catch(err => {
-                    console.warn('[PlatformSDK] VK Rewarded ad error/closed:', err);
+                    console.warn('[PlatformSDK] VK Rewarded ad error or not ready:', err);
                     restoreSound();
-                    if (onClose) onClose(false);
+                    // If ad is not configured in VK console or no ad fill available, give reward with notice so user is not stuck
+                    console.info('[PlatformSDK] Fallback reward granted (ad unavailable in console or region)');
+                    this.showToast('Реклама недоступна — награда выдана бонусом! 🎁');
+                    if (onRewarded) onRewarded();
+                    if (onClose) onClose(true);
                 });
             return;
         }
@@ -216,6 +268,7 @@ class PlatformSDKWrapper {
 
         // Local Fallback (Mock reward granted)
         restoreSound();
+        this.showToast('🎁 Награда получена!');
         if (onRewarded) onRewarded();
         if (onClose) onClose(true);
     }
