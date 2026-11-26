@@ -42,6 +42,7 @@ class BootScene extends Phaser.Scene {
         this.load.image('obstacle_rock', 'assets/obstacle_rock.png' + V);
         this.load.image('obstacle_bush', 'assets/obstacle_bush.png' + V);
         this.load.image('obstacle_barrel', 'assets/obstacle_barrel.png' + V);
+        this.load.image('obstacle_tnt_barrel', 'assets/obstacle_tnt_barrel.png' + V);
         this.load.image('obstacle_wall_h', 'assets/obstacle_wall_h.png' + V);
         this.load.image('obstacle_wall_v', 'assets/obstacle_wall_v.png' + V);
         this.load.image('obstacle_fence', 'assets/obstacle_fence.png' + V);
@@ -95,6 +96,7 @@ class BootScene extends Phaser.Scene {
         this.load.image('evo_barrage', 'assets/evo_barrage.png' + V);
         this.load.image('evo_wolverine', 'assets/evo_wolverine.png' + V);
         this.load.image('evo_valerian_storm', 'assets/evo_valerian_storm.png' + V);
+        this.load.image('evo_cluster_bomb', 'assets/evo_cluster_bomb.png' + V);
 
         // Drops & FX
         this.load.image('drop_xp', 'assets/drop_xp.png' + V);
@@ -103,12 +105,14 @@ class BootScene extends Phaser.Scene {
         this.load.image('drop_bomb', 'assets/drop_bomb.png' + V);
         this.load.image('drop_clock', 'assets/drop_clock.png' + V);
         this.load.image('drop_chest', 'assets/drop_chest.png' + V);
+        this.load.image('drop_magnet_all', 'assets/drop_magnet_all.png' + V);
         this.load.image('fx_dust', 'assets/fx_dust.png' + V);
     }
 
     create() {
         console.log('[Game] Pre-caching assets and registering animations in background...');
         this.registerAllAnimations();
+        this.assetsReady = true;
 
         if (window.gameStarted) {
             this.scene.start('GameScene');
@@ -118,23 +122,18 @@ class BootScene extends Phaser.Scene {
     }
 
     registerAllAnimations() {
+        const safeCreateAnim = (key, frames, frameRate, repeat) => {
+            if (!frames || frames.length === 0) return;
+            if (this.anims.exists(key)) {
+                if (this.anims.get(key).frames.length > 0) return;
+                this.anims.remove(key);
+            }
+            this.anims.create({ key, frames, frameRate, repeat });
+        };
+
         ['barsik', 'murzik', 'pukhlyash'].forEach(heroId => {
-            if (!this.anims.exists(`${heroId}_run`)) {
-                this.anims.create({
-                    key: `${heroId}_run`,
-                    frames: this.anims.generateFrameNumbers(`cat_${heroId}_run`, { start: 0, end: 3 }),
-                    frameRate: 10,
-                    repeat: -1
-                });
-            }
-            if (!this.anims.exists(`${heroId}_idle`)) {
-                this.anims.create({
-                    key: `${heroId}_idle`,
-                    frames: this.anims.generateFrameNumbers(`cat_${heroId}_idle`, { start: 0, end: 1 }),
-                    frameRate: 3,
-                    repeat: -1
-                });
-            }
+            safeCreateAnim(`${heroId}_run`, this.anims.generateFrameNumbers(`cat_${heroId}_run`, { start: 0, end: 3 }), 10, -1);
+            safeCreateAnim(`${heroId}_idle`, this.anims.generateFrameNumbers(`cat_${heroId}_idle`, { start: 0, end: 1 }), 3, -1);
         });
 
         const list = [
@@ -157,14 +156,7 @@ class BootScene extends Phaser.Scene {
         ];
 
         list.forEach(a => {
-            if (!this.anims.exists(a.key)) {
-                this.anims.create({
-                    key: a.key,
-                    frames: this.anims.generateFrameNumbers(a.sheet, { start: a.start, end: a.end }),
-                    frameRate: a.rate,
-                    repeat: a.repeat
-                });
-            }
+            safeCreateAnim(a.key, this.anims.generateFrameNumbers(a.sheet, { start: a.start, end: a.end }), a.rate, a.repeat);
         });
     }
 }
@@ -179,6 +171,11 @@ class GameScene extends Phaser.Scene {
         this.player = null;
         this.selectedHeroId = window.selectedHeroId || 'barsik';
         this.heroConfig = CHARACTERS.find(c => c.id === this.selectedHeroId) || CHARACTERS[0];
+        this.selectedModeId = window.selectedModeId || 'park';
+        this.modeConfig = (typeof GAME_MODES !== 'undefined' && GAME_MODES.find(m => m.id === this.selectedModeId)) || {
+            id: 'park', evacSeconds: 300, coinMult: 1.0, hpMult: 1.0, speedMult: 1.0, floorTint: 0xffffff, bgColor: '#27ae60'
+        };
+        this.isHardcoreHero = Boolean(window.isHardcoreMode);
         
         // Meta-upgrades & Stats
         this.metaTalents = window.metaTalents || { hp: 0, dmg: 0, speed: 0, greed: 0, magnet: 0 };
@@ -187,7 +184,7 @@ class GameScene extends Phaser.Scene {
         this.baseSpeed = this.heroConfig.speed * (1 + this.metaTalents.speed * 0.08);
         this.speed = this.baseSpeed;
         this.damageMultiplier = 1 + (this.metaTalents.dmg * 0.1);
-        this.greedMultiplier = 1 + (this.metaTalents.greed * 0.2);
+        this.greedMultiplier = (1 + (this.metaTalents.greed * 0.2)) * (this.modeConfig.coinMult || 1.0) * (this.isHardcoreHero ? 1.5 : 1.0);
         this.pickupRadius = 110 * (1 + this.metaTalents.magnet * 0.25);
         this.attackSpeedMultiplier = 1.0;
         this.damageReduction = 0;
@@ -204,13 +201,21 @@ class GameScene extends Phaser.Scene {
         this.invulnerableTimer = 0;
         this.freezeTimer = 0;
         this.activeBoss = null;
+        this.damageStats = {};
+        this.comboCount = 0;
+        this.comboTimer = 0;
+        this.bestCombo = 0;
 
-        // Dash Ability
+        // Dash & Ultimate Abilities
         this.dashCooldownTime = 2600;
         this.lastDashTime = -3000;
         this.isDashing = false;
         this.dashDuration = 220;
         this.dashSpeedMultiplier = 3.2;
+
+        this.ultCooldownTime = 18000;
+        this.lastUltTime = -20000;
+        this.ultHasteTimer = 0;
 
         // Active Skills & Evolutions
         this.activeSkills = {};
@@ -218,9 +223,6 @@ class GameScene extends Phaser.Scene {
         this.orbitingSharks = [];
         this.orbitingBeams = [];
         this.valerianPuddles = [];
-
-        // Hardcore mode for Barsik (1st cat)
-        this.isHardcoreHero = (this.selectedHeroId === 'barsik');
 
         // Anti-AFK / Standing still Enrage Tracker
         this.lastPlayerPos = { x: this.arenaSize / 2, y: this.arenaSize / 2 };
@@ -232,7 +234,7 @@ class GameScene extends Phaser.Scene {
         this.addOrUpgradeSkill(this.heroConfig.startingWeapon);
 
         // Evacuation & Victory Progression
-        this.evacTargetTime = this.heroConfig.evacTargetSeconds || 600;
+        this.evacTargetTime = this.modeConfig.evacSeconds || 300;
         this.evacTriggered = false;
         this.evacCompleted = false;
         this.isEndlessMode = false;
@@ -243,7 +245,9 @@ class GameScene extends Phaser.Scene {
         this.chopperShadow = null;
         this.chopperDownwash = null;
         this.evacIndicator = null;
+        this.poiIndicator = null;
         this.spawnedBossTimes = new Set();
+        this.dozerDefeatedInRun = false;
 
         // Joystick
         this.joystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, moveX: 0, moveY: 0 };
@@ -258,12 +262,21 @@ class GameScene extends Phaser.Scene {
 
         // 1. Arena Bounds & Background
         this.physics.world.setBounds(0, 0, this.arenaSize, this.arenaSize);
+        if (this.modeConfig.bgColor) {
+            this.cameras.main.setBackgroundColor(this.modeConfig.bgColor);
+        }
         const tile = this.add.tileSprite(this.arenaSize / 2, this.arenaSize / 2, this.arenaSize, this.arenaSize, 'tile_floor');
         tile.setDepth(0);
+        if (this.modeConfig.floorTint && this.modeConfig.floorTint !== 0xffffff) {
+            tile.setTint(this.modeConfig.floorTint);
+        }
 
         // Central Royal Cat Sanctuary Plaza
         const plaza = this.add.image(this.arenaSize / 2, this.arenaSize / 2, 'map_plaza');
         plaza.setDepth(1);
+        if (this.modeConfig.floorTint && this.modeConfig.floorTint !== 0xffffff) {
+            plaza.setTint(this.modeConfig.floorTint);
+        }
 
         // Ground Decals (Flower patches, ancient stone manholes)
         this.setupMapDecals();
@@ -314,20 +327,18 @@ class GameScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
             dash: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+            ult: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
             esc: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)
         };
 
         this.wasd.dash.on('down', () => this.tryDash());
-        this.wasd.esc.on('down', () => {
-            if (window.uiManager) {
-                window.uiManager.togglePause();
-            }
-        });
+        this.wasd.ult.on('down', () => this.tryUltimate());
         this.setupVirtualJoystick();
 
         // 7. Collisions & Overlaps
         this.physics.add.collider(this.player, this.obstacles);
         this.physics.add.collider(this.enemies, this.obstacles);
+        this.physics.add.collider(this.enemies, this.enemies);
         this.physics.add.overlap(this.player, this.bushes, this.handleBushSlow, null, this);
         this.physics.add.overlap(this.player, this.enemies, this.handlePlayerEnemyCollision, null, this);
         this.physics.add.overlap(this.projectiles, this.enemies, this.handleProjectileEnemyHit, null, this);
@@ -374,7 +385,7 @@ class GameScene extends Phaser.Scene {
 
         if (this.isHardcoreHero) {
             this.time.delayedCall(800, () => {
-                this.showDamageText(this.player.x, this.player.y - 50, '💀 ХАРДКОР: БАРСИК 💀', '#ff3333');
+                this.showDamageText(this.player.x, this.player.y - 50, '💀 РЕЖИМ ХАРДКОР (+50% МОНЕТ) 💀', '#ff3333');
             });
         }
 
@@ -450,6 +461,10 @@ class GameScene extends Phaser.Scene {
                 obs.isCrate = true;
                 obs.hp = 30;
                 obs.body.setSize(40, 40);
+            } else if (opts.isTntBarrel) {
+                obs.isTntBarrel = true;
+                obs.hp = 18;
+                obs.body.setSize(38, 38);
             } else if (opts.isBarrel) {
                 obs.isBarrel = true;
                 obs.hp = 35;
@@ -538,15 +553,17 @@ class GameScene extends Phaser.Scene {
         }
 
         // 3. Random Scattered Points of Interest across the map
-        for (let i = 0; i < 22; i++) {
+        for (let i = 0; i < 24; i++) {
             const rx = Phaser.Math.Between(150, sz - 150);
             const ry = Phaser.Math.Between(150, sz - 150);
             const roll = Math.random();
-            if (roll < 0.25) {
+            if (roll < 0.22) {
+                addObs(rx, ry, 'obstacle_tnt_barrel', { isTntBarrel: true });
+            } else if (roll < 0.42) {
                 addObs(rx, ry, 'obstacle_barrel', { isBarrel: true });
-            } else if (roll < 0.5) {
+            } else if (roll < 0.64) {
                 addObs(rx, ry, 'obstacle_crate', { isCrate: true });
-            } else if (roll < 0.75) {
+            } else if (roll < 0.82) {
                 addObs(rx, ry, 'obstacle_rock', { isRock: true });
             } else {
                 addObs(rx, ry, 'obstacle_bush', { isBush: true });
@@ -562,40 +579,44 @@ class GameScene extends Phaser.Scene {
     handleProjectileObstacleHit(proj, obstacle) {
         if (!proj.active || !obstacle.active) return;
 
-        if (obstacle.isCrate || obstacle.isBarrel) {
+        if (obstacle.isCrate || obstacle.isBarrel || obstacle.isTntBarrel) {
             obstacle.hp -= (proj.damage || 20);
             // Splinter shake & hit tint
-            obstacle.setTint(obstacle.isBarrel ? 0x88ddff : 0xff9944);
+            obstacle.setTint(obstacle.isTntBarrel ? 0xff4422 : obstacle.isBarrel ? 0x88ddff : 0xff9944);
             this.time.delayedCall(80, () => {
                 if (obstacle && obstacle.active) obstacle.clearTint();
             });
 
             if (obstacle.hp <= 0) {
-                if (window.soundManager) window.soundManager.playWoodBreak();
-                if (obstacle.isBarrel) {
-                    const barrelRoll = Math.random();
-                    if (barrelRoll < 0.40) {
-                        this.spawnDrop(obstacle.x, obstacle.y, true); // Fish heal drop
-                    } else if (barrelRoll < 0.75) {
-                        const coin = this.drops.create(obstacle.x, obstacle.y, 'drop_coin');
-                        coin.setDepth(5);
-                        coin.dropType = 'drop_coin';
-                        coin.body.setSize(20, 20);
-                    } else {
-                        const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
-                        gem.setDepth(5);
-                        gem.dropType = 'drop_xp';
-                        gem.body.setSize(20, 20);
-                    }
+                if (obstacle.isTntBarrel) {
+                    this.detonateTntBarrel(obstacle.x, obstacle.y);
                 } else {
-                    const dropRoll = Math.random();
-                    if (dropRoll < 0.35) {
-                        this.spawnDrop(obstacle.x, obstacle.y, false);
+                    if (window.soundManager) window.soundManager.playWoodBreak();
+                    if (obstacle.isBarrel) {
+                        const barrelRoll = Math.random();
+                        if (barrelRoll < 0.40) {
+                            this.spawnDrop(obstacle.x, obstacle.y, true); // Fish heal drop
+                        } else if (barrelRoll < 0.75) {
+                            const coin = this.drops.create(obstacle.x, obstacle.y, 'drop_coin');
+                            coin.setDepth(5);
+                            coin.dropType = 'drop_coin';
+                            coin.body.setSize(20, 20);
+                        } else {
+                            const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
+                            gem.setDepth(5);
+                            gem.dropType = 'drop_xp';
+                            gem.body.setSize(20, 20);
+                        }
                     } else {
-                        const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
-                        gem.setDepth(5);
-                        gem.dropType = 'drop_xp';
-                        gem.body.setSize(20, 20);
+                        const dropRoll = Math.random();
+                        if (dropRoll < 0.35) {
+                            this.spawnDrop(obstacle.x, obstacle.y, false);
+                        } else {
+                            const gem = this.drops.create(obstacle.x, obstacle.y, 'drop_xp');
+                            gem.setDepth(5);
+                            gem.dropType = 'drop_xp';
+                            gem.body.setSize(20, 20);
+                        }
                     }
                 }
                 obstacle.destroy();
@@ -817,6 +838,121 @@ class GameScene extends Phaser.Scene {
         if (window.uiManager) window.uiManager.onDashUsed(this.dashCooldownTime);
     }
 
+    detonateTntBarrel(bx, by) {
+        if (window.soundManager) window.soundManager.playMineExplosion();
+        this.cameras.main.shake(200, 0.018);
+
+        const exp = this.add.sprite(bx, by, 'fx_mine_explosion');
+        exp.setDepth(16);
+        exp.setScale(2.1);
+        exp.play('mine_explosion');
+        exp.on('animationcomplete', () => exp.destroy());
+
+        const blastRadius = 175;
+        const dmg = Math.round((140 + this.survivalTime * 0.8) * this.damageMultiplier);
+        this.enemies.getChildren().forEach(e => {
+            if (!e || !e.active) return;
+            const d = Phaser.Math.Distance.Between(bx, by, e.x, e.y);
+            if (d <= blastRadius) {
+                const ang = Phaser.Math.Angle.Between(bx, by, e.x, e.y);
+                e.x += Math.cos(ang) * 55;
+                e.y += Math.sin(ang) * 55;
+                this.damageEnemy(e, dmg, 'tnt_barrel');
+            }
+        });
+        this.showDamageText(bx, by - 24, '💥 БАБАХ! 💥', '#ff6b35');
+    }
+
+    tryUltimate() {
+        if (this.isGameOver || this.isPaused) return;
+        const now = this.time.now;
+        if (now - this.lastUltTime < this.ultCooldownTime) return;
+
+        this.lastUltTime = now;
+        if (window.soundManager && typeof window.soundManager.playUlt === 'function') {
+            window.soundManager.playUlt();
+        }
+        this.cameras.main.shake(180, 0.014);
+
+        const px = this.player.x;
+        const py = this.player.y;
+
+        if (this.selectedHeroId === 'barsik') {
+            // Barsik Ult: 12-Fish 360° Nova
+            this.showDamageText(px, py - 50, '🐟 РЫБНЫЙ ШКВАЛ! 🐟', '#3498db');
+            const dmg = Math.round(55 * this.damageMultiplier * (1 + (this.level - 1) * 0.08));
+            for (let i = 0; i < 12; i++) {
+                const ang = (Math.PI * 2 / 12) * i;
+                const fish = this.projectiles.create(px, py, 'proj_fish');
+                fish.setDepth(12);
+                fish.setScale(1.25);
+                fish.setTint(0xffd700);
+                fish.damage = dmg;
+                fish.pierce = 6;
+                fish.hitEnemies = new Set();
+                fish.sourceId = 'ult_hero';
+                fish.isFish = true;
+                fish.returning = false;
+                fish.setVelocity(Math.cos(ang) * 440, Math.sin(ang) * 440);
+                fish.rotation = ang;
+                this.time.delayedCall(600, () => {
+                    if (fish && fish.active) fish.returning = true;
+                });
+            }
+        } else if (this.selectedHeroId === 'murzik') {
+            // Murzik Ult: Shadow Haste + Invulnerable + 8 Ricocheting Shurikens
+            this.showDamageText(px, py - 50, '🌀 ТЕНЕВОЙ ШКВАЛ! 🌀', '#9b59b6');
+            this.invulnerableTimer = Math.max(this.invulnerableTimer, 2400);
+            this.ultHasteTimer = 2400;
+            const dmg = Math.round(45 * this.damageMultiplier * (1 + (this.level - 1) * 0.08));
+            for (let i = 0; i < 8; i++) {
+                const ang = (Math.PI * 2 / 8) * i;
+                const yarn = this.projectiles.create(px, py, 'proj_yarn');
+                yarn.setDepth(12);
+                yarn.setScale(1.2);
+                yarn.setTint(0xc084fc);
+                yarn.damage = dmg;
+                yarn.bouncesLeft = 5;
+                yarn.hitEnemies = new Set();
+                yarn.isYarn = true;
+                yarn.sourceId = 'ult_hero';
+                yarn.setVelocity(Math.cos(ang) * 390, Math.sin(ang) * 390);
+                this.time.delayedCall(2800, () => {
+                    if (yarn && yarn.active) yarn.destroy();
+                });
+            }
+        } else {
+            // Pukhlyash Ult: Mega Belly Slam (AoE stun/knockback + 15% heal)
+            this.showDamageText(px, py - 50, '💥 МЕГА-ТОПОТ! 💥', '#2ecc71');
+            const radius = 250;
+            const dmg = Math.round(95 * this.damageMultiplier * (1 + (this.level - 1) * 0.1));
+            const ring = this.add.circle(px, py, 24, 0x2ecc71, 0.75);
+            ring.setDepth(14);
+            this.tweens.add({
+                targets: ring,
+                scale: radius / 24,
+                alpha: 0,
+                duration: 360,
+                ease: 'Cubic.out',
+                onComplete: () => ring.destroy()
+            });
+            this.enemies.getChildren().forEach(e => {
+                if (!e || !e.active) return;
+                if (Phaser.Math.Distance.Between(px, py, e.x, e.y) <= radius) {
+                    const ang = Phaser.Math.Angle.Between(px, py, e.x, e.y);
+                    e.x += Math.cos(ang) * (e.isBoss ? 30 : 95);
+                    e.y += Math.sin(ang) * (e.isBoss ? 30 : 95);
+                    this.damageEnemy(e, dmg, 'ult_hero');
+                }
+            });
+            this.healPlayer(Math.max(15, Math.round(this.maxHp * 0.15)));
+        }
+
+        if (window.uiManager && typeof window.uiManager.onUltUsed === 'function') {
+            window.uiManager.onUltUsed(this.ultCooldownTime);
+        }
+    }
+
     emitFootstepDust() {
         if (this.isGameOver || this.isPaused) return;
         const v = this.player.body.velocity;
@@ -848,6 +984,16 @@ class GameScene extends Phaser.Scene {
         if (this.activeSkills.milk && this.hp < this.maxHp) {
             const healVal = 4 * this.activeSkills.milk;
             this.healPlayer(healVal);
+        }
+
+        // Elite Enemy Spawn every 45s (starting at 45s)
+        if (this.survivalTime >= 45 && this.survivalTime % 45 === 0) {
+            this.spawnEliteEnemy();
+        }
+
+        // Pigeon Swarm Event every 75s (starting at 65s)
+        if (this.survivalTime >= 65 && (this.survivalTime - 65) % 75 === 0) {
+            this.spawnPigeonSwarmEvent();
         }
 
         // Check Boss status
@@ -915,9 +1061,23 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Freeze countdown
+        // Freeze countdown & Ult haste
         if (this.freezeTimer > 0) {
             this.freezeTimer -= delta;
+        }
+        if (this.ultHasteTimer > 0) {
+            this.ultHasteTimer -= delta;
+        }
+
+        // Combo decay
+        if (this.comboTimer > 0) {
+            this.comboTimer -= delta;
+            if (this.comboTimer <= 0 && this.comboCount > 0) {
+                this.comboCount = 0;
+                if (window.uiManager && typeof window.uiManager.updateCombo === 'function') {
+                    window.uiManager.updateCombo(0);
+                }
+            }
         }
 
         // 1. Player Movement & Anti-AFK Tracker
@@ -944,6 +1104,9 @@ class GameScene extends Phaser.Scene {
         if (this.player.inBush) {
             curSpd *= 0.65;
             this.player.inBush = false;
+        }
+        if (this.ultHasteTimer > 0) {
+            curSpd *= 1.45;
         }
         if (this.isDashing) {
             curSpd *= this.dashSpeedMultiplier;
@@ -1067,6 +1230,37 @@ class GameScene extends Phaser.Scene {
         } else if (this.evacIndicator) {
             this.evacIndicator.clear();
         }
+
+        // 8. Offscreen Chest / All-Magnet Pointer Indicator
+        let nearestPoi = null;
+        let nearestPoiDist = Infinity;
+        this.drops.getChildren().forEach(d => {
+            if (!d.active) return;
+            if (d.dropType === 'drop_chest' || d.dropType === 'drop_magnet_all') {
+                const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, d.x, d.y);
+                if (dist > 340 && dist < nearestPoiDist) {
+                    nearestPoiDist = dist;
+                    nearestPoi = d;
+                }
+            }
+        });
+        if (nearestPoi) {
+            if (!this.poiIndicator) {
+                this.poiIndicator = this.add.graphics().setDepth(20);
+            }
+            const g = this.poiIndicator;
+            g.clear();
+            const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, nearestPoi.x, nearestPoi.y);
+            const ax = this.player.x + Math.cos(ang) * 70;
+            const ay = this.player.y + Math.sin(ang) * 70;
+            const color = nearestPoi.dropType === 'drop_chest' ? 0xf1c40f : 0x00e5ff;
+            g.fillStyle(color, 0.9);
+            g.fillCircle(ax, ay, 6);
+            g.lineStyle(3, color, 0.95);
+            g.lineBetween(ax, ay, ax + Math.cos(ang) * 14, ay + Math.sin(ang) * 14);
+        } else if (this.poiIndicator) {
+            this.poiIndicator.clear();
+        }
     }
 
     updateWeapons(time) {
@@ -1184,14 +1378,22 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Meow Mine
-        if (this.activeSkills.meow_mine) {
+        // Meow Mine & Cluster Bombs Evolution
+        if (this.activeSkills.meow_mine && !this.activeSkills.evo_cluster_bomb) {
             const data = SKILLS_DATABASE.meow_mine;
             const lvl = this.activeSkills.meow_mine;
             const cd = Math.max(600, (data.cooldown - (lvl - 1) * data.cooldownReduction) / this.attackSpeedMultiplier);
             if (!this.weaponTimers.meow_mine || time - this.weaponTimers.meow_mine > cd) {
                 this.weaponTimers.meow_mine = time;
                 this.dropMeowMine(lvl);
+            }
+        }
+
+        if (this.activeSkills.evo_cluster_bomb) {
+            const cd = SKILLS_DATABASE.evo_cluster_bomb.cooldown / this.attackSpeedMultiplier;
+            if (!this.weaponTimers.evo_cluster_bomb || time - this.weaponTimers.evo_cluster_bomb > cd) {
+                this.weaponTimers.evo_cluster_bomb = time;
+                this.fireClusterBombs();
             }
         }
 
@@ -1232,8 +1434,11 @@ class GameScene extends Phaser.Scene {
 
                 this.enemies.getChildren().forEach(e => {
                     if (!e.active) return;
-                    if (Phaser.Math.Distance.Between(shark.x, shark.y, e.x, e.y) < 40) {
-                        this.damageEnemy(e, 85 * this.damageMultiplier);
+                    if (Phaser.Math.Distance.Between(shark.x, shark.y, e.x, e.y) < 42) {
+                        if (!e._sharkHitAt || time - e._sharkHitAt >= 280) {
+                            e._sharkHitAt = time;
+                            this.damageEnemy(e, SKILLS_DATABASE.evo_shark.baseDamage * this.damageMultiplier, 'evo_shark');
+                        }
                     }
                 });
             });
@@ -1268,8 +1473,9 @@ class GameScene extends Phaser.Scene {
                 });
 
                 const target = this.getClosestEnemy(250, orb.x, orb.y);
-                if (target) {
-                    this.damageEnemy(target, 45 * this.damageMultiplier);
+                if (target && (!target._beamHitAt || time - target._beamHitAt >= 240)) {
+                    target._beamHitAt = time;
+                    this.damageEnemy(target, SKILLS_DATABASE.evo_beam.baseDamage * this.damageMultiplier, 'evo_beam');
                 }
             });
         }
@@ -1304,6 +1510,7 @@ class GameScene extends Phaser.Scene {
             fish.pierce = 2 + level;
             fish.hitEnemies = new Set();
             fish.isFish = true;
+            fish.sourceId = 'fish';
             fish.originX = this.player.x;
             fish.originY = this.player.y;
             fish.returning = false;
@@ -1331,6 +1538,7 @@ class GameScene extends Phaser.Scene {
         yarn.bouncesLeft = 3 + level;
         yarn.hitEnemies = new Set();
         yarn.isYarn = true;
+        yarn.sourceId = 'yarn';
 
         const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
         const spd = 300;
@@ -1358,7 +1566,7 @@ class GameScene extends Phaser.Scene {
             const e1 = shuffled[i];
             const e2 = shuffled[(i + 1) % count];
             gfx.lineBetween(e1.x, e1.y, e2.x, e2.y);
-            this.damageEnemy(e1, 60 * this.damageMultiplier);
+            this.damageEnemy(e1, 60 * this.damageMultiplier, 'evo_web');
         }
 
         this.tweens.add({
@@ -1388,7 +1596,7 @@ class GameScene extends Phaser.Scene {
             if (!e.active) return;
             const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
             if (dist <= radius) {
-                this.damageEnemy(e, dmg);
+                this.damageEnemy(e, dmg, 'aura');
                 const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
                 e.x += Math.cos(ang) * 18;
                 e.y += Math.sin(ang) * 18;
@@ -1417,7 +1625,7 @@ class GameScene extends Phaser.Scene {
             if (!e.active) return;
             const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
             if (dist <= radius) {
-                this.damageEnemy(e, dmg);
+                this.damageEnemy(e, dmg, 'evo_dome');
                 const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
                 e.x += Math.cos(ang) * 50;
                 e.y += Math.sin(ang) * 50;
@@ -1458,7 +1666,7 @@ class GameScene extends Phaser.Scene {
             onComplete: () => spark.destroy()
         });
 
-        this.damageEnemy(target, dmg);
+        this.damageEnemy(target, dmg, 'laser');
         if (window.soundManager) window.soundManager.playLaser();
     }
 
@@ -1472,6 +1680,7 @@ class GameScene extends Phaser.Scene {
         slipper.pierce = 4;
         slipper.hitEnemies = new Set();
         slipper.isSlipper = true;
+        slipper.sourceId = 'slipper';
 
         const spd = 400;
         slipper.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
@@ -1515,7 +1724,7 @@ class GameScene extends Phaser.Scene {
                         this.enemies.getChildren().forEach(e => {
                             if (!e.active) return;
                             if (Phaser.Math.Distance.Between(slipper.x, targetY, e.x, e.y) < 120) {
-                                this.damageEnemy(e, slipper.damage);
+                                this.damageEnemy(e, slipper.damage, 'evo_barrage');
                             }
                         });
                         slipper.destroy();
@@ -1561,7 +1770,7 @@ class GameScene extends Phaser.Scene {
                 if (!e.active) return;
                 const d = Phaser.Math.Distance.Between(px, py, e.x, e.y);
                 if (d <= hitRadius) {
-                    this.damageEnemy(e, dmg);
+                    this.damageEnemy(e, dmg, 'evo_wolverine');
                     const pushAng = Phaser.Math.Angle.Between(px, py, e.x, e.y);
                     e.x += Math.cos(pushAng) * 40;
                     e.y += Math.sin(pushAng) * 40;
@@ -1593,7 +1802,7 @@ class GameScene extends Phaser.Scene {
                 if (!e.active) return;
                 const d = Phaser.Math.Distance.Between(slashX, py, e.x, e.y);
                 if (d <= hitRange) {
-                    this.damageEnemy(e, dmg);
+                    this.damageEnemy(e, dmg, 'claws_slash');
                     const pushX = this.player.flipX ? -25 : 25;
                     e.x += pushX;
                 }
@@ -1812,7 +2021,7 @@ class GameScene extends Phaser.Scene {
                     const d = Phaser.Math.Distance.Between(p.x, p.y, e.x, e.y);
                     if (d <= p.radius) {
                         e.valerianSlowTimer = 500;
-                        this.damageEnemy(e, p.damage);
+                        this.damageEnemy(e, p.damage, p.isEvo ? 'evo_valerian_storm' : 'valerian');
                     }
                 });
 
@@ -1903,7 +2112,7 @@ class GameScene extends Phaser.Scene {
                 const pushAng = Phaser.Math.Angle.Between(mx, my, e.x, e.y);
                 e.x += Math.cos(pushAng) * 38;
                 e.y += Math.sin(pushAng) * 38;
-                this.damageEnemy(e, dmg);
+                this.damageEnemy(e, dmg, 'meow_mine');
             }
         });
 
@@ -1915,6 +2124,58 @@ class GameScene extends Phaser.Scene {
                 const bombSelfDmg = Math.round((dmg * 0.45) * proximityFactor);
                 this.applyPlayerDamage(Math.max(12, bombSelfDmg), mx, my, false, true);
             }
+        }
+    }
+
+    fireClusterBombs() {
+        const enemies = this.enemies.getChildren().filter(e => e.active);
+        const dmg = SKILLS_DATABASE.evo_cluster_bomb.baseDamage * this.damageMultiplier;
+        const count = 3;
+
+        for (let i = 0; i < count; i++) {
+            this.time.delayedCall(i * 110, () => {
+                if (this.isGameOver || this.isPaused) return;
+                const px = this.player.x;
+                const py = this.player.y;
+                const target = enemies.length > 0 ? enemies[i % enemies.length] : null;
+                const tx = (target && target.active) ? target.x : px + Phaser.Math.Between(-240, 240);
+                const ty = (target && target.active) ? target.y : py + Phaser.Math.Between(-240, 240);
+
+                const drone = this.add.sprite(px, py, 'evo_cluster_bomb');
+                drone.setDepth(15);
+                drone.setScale(0.95);
+                this.tweens.add({
+                    targets: drone,
+                    x: tx,
+                    y: ty,
+                    angle: 360,
+                    duration: 380,
+                    ease: 'Cubic.out',
+                    onComplete: () => {
+                        if (drone && drone.active) drone.destroy();
+                        if (window.soundManager) window.soundManager.playMineExplosion();
+                        this.cameras.main.shake(110, 0.01);
+
+                        const exp = this.add.sprite(tx, ty, 'fx_mine_explosion');
+                        exp.setDepth(16);
+                        exp.setScale(1.65);
+                        exp.setTint(0xffd700);
+                        exp.play('mine_explosion');
+                        exp.on('animationcomplete', () => exp.destroy());
+
+                        const blastRadius = 135;
+                        this.enemies.getChildren().forEach(e => {
+                            if (!e || !e.active) return;
+                            if (Phaser.Math.Distance.Between(tx, ty, e.x, e.y) <= blastRadius) {
+                                const ang = Phaser.Math.Angle.Between(tx, ty, e.x, e.y);
+                                e.x += Math.cos(ang) * 42;
+                                e.y += Math.sin(ang) * 42;
+                                this.damageEnemy(e, dmg, 'evo_cluster_bomb');
+                            }
+                        });
+                    }
+                });
+            });
         }
     }
 
@@ -1946,7 +2207,7 @@ class GameScene extends Phaser.Scene {
             gfx.lineBetween(px, py, t.enemy.x, t.enemy.y);
             t.enemy.setTint(0x00ffff);
             if (t.enemy.body) t.enemy.body.setVelocity(0, 0);
-            this.damageEnemy(t.enemy, dmg);
+            this.damageEnemy(t.enemy, dmg, 'static_fur');
             this.time.delayedCall(160, () => {
                 if (t.enemy && t.enemy.active) t.enemy.clearTint();
             });
@@ -1967,7 +2228,7 @@ class GameScene extends Phaser.Scene {
         if (proj.hitEnemies && proj.hitEnemies.has(enemy)) return;
 
         if (proj.hitEnemies) proj.hitEnemies.add(enemy);
-        this.damageEnemy(enemy, proj.damage);
+        this.damageEnemy(enemy, proj.damage, proj.sourceId || 'other');
 
         if (proj.isYarn && proj.bouncesLeft > 0) {
             proj.bouncesLeft--;
@@ -2015,10 +2276,14 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    damageEnemy(enemy, amount) {
+    damageEnemy(enemy, amount, sourceId = 'other') {
         if (!enemy.active) return;
 
+        const actualDmg = Math.min(enemy.hp, amount);
         enemy.hp -= amount;
+        if (sourceId && actualDmg > 0) {
+            this.damageStats[sourceId] = (this.damageStats[sourceId] || 0) + Math.round(actualDmg);
+        }
         this.showDamageText(enemy.x, enemy.y - 20, Math.round(amount), '#ffffff');
 
         enemy.setTint(0xff5555);
@@ -2027,6 +2292,7 @@ class GameScene extends Phaser.Scene {
                 enemy.clearTint();
                 if (this.freezeTimer > 0) enemy.setTint(0x77ccee);
                 else if (this.isAfkEnraged) enemy.setTint(0xff3333);
+                else if (enemy.isElite) enemy.setTint(0xffd700);
             }
         });
 
@@ -2090,9 +2356,26 @@ class GameScene extends Phaser.Scene {
         }
 
         this.kills++;
+        this.comboCount++;
+        this.comboTimer = 3200;
+        if (this.comboCount > this.bestCombo) this.bestCombo = this.comboCount;
+
+        if (window.uiManager && typeof window.uiManager.updateCombo === 'function') {
+            window.uiManager.updateCombo(this.comboCount);
+        }
+        if (this.comboCount > 0 && this.comboCount % 25 === 0) {
+            if (window.soundManager && typeof window.soundManager.playComboMilestone === 'function') {
+                window.soundManager.playComboMilestone();
+            }
+            const bonusXp = Math.min(50, 10 + Math.floor(this.comboCount / 25) * 8);
+            this.addXp(bonusXp);
+            this.showDamageText(this.player.x, this.player.y - 62, `🔥 КОМБО x${this.comboCount}! +${bonusXp} XP`, '#ff9f43');
+        }
+
         const ex = enemy.x;
         const ey = enemy.y;
         const isBoss = enemy.isBoss;
+        const isElite = enemy.isElite;
 
         if (isBoss) {
             this.cameras.main.flash(450, 255, 255, 255);
@@ -2100,16 +2383,35 @@ class GameScene extends Phaser.Scene {
             if (window.soundManager) window.soundManager.playExplosion();
 
             this.spawnChest(ex, ey);
+            if (enemy.enemyType === 'boss_dozer') {
+                this.dozerDefeatedInRun = true;
+            }
 
             for (let i = 0; i < 8; i++) {
                 this.spawnDrop(ex + Phaser.Math.Between(-50, 50), ey + Phaser.Math.Between(-50, 50), false);
             }
 
             if (window.uiManager) {
-                window.uiManager.recordBossDefeat();
+                window.uiManager.recordBossDefeat(enemy.enemyType === 'boss_dozer');
                 window.uiManager.hideBossBar();
             }
             this.activeBoss = null;
+        } else if (isElite) {
+            this.cameras.main.shake(140, 0.01);
+            if (Math.random() < 0.45) {
+                this.spawnChest(ex, ey);
+            } else {
+                const mag = this.drops.create(ex, ey, 'drop_magnet_all');
+                mag.setDepth(6);
+                mag.dropType = 'drop_magnet_all';
+                mag.body.setSize(28, 28);
+            }
+            for (let i = 0; i < 3; i++) {
+                const coin = this.drops.create(ex + Phaser.Math.Between(-25, 25), ey + Phaser.Math.Between(-25, 25), 'drop_coin');
+                coin.setDepth(5);
+                coin.dropType = 'drop_coin';
+                coin.body.setSize(20, 20);
+            }
         } else {
             this.spawnDrop(ex, ey, false);
         }
@@ -2145,6 +2447,8 @@ class GameScene extends Phaser.Scene {
             type = 'drop_clock';
         } else if (roll < 0.36) {
             type = 'drop_bomb'; // 5% drop chance
+        } else if (roll < 0.38) {
+            type = 'drop_magnet_all'; // 2% arena-wide magnet
         }
 
         const drop = this.drops.create(x, y, type);
@@ -2170,9 +2474,9 @@ class GameScene extends Phaser.Scene {
             if (!drop.active) return;
             const dist = Phaser.Math.Distance.Between(px, py, drop.x, drop.y);
 
-            if (dist <= rad) {
+            if (drop.magnetPull || dist <= rad) {
                 const ang = Phaser.Math.Angle.Between(drop.x, drop.y, px, py);
-                const spd = 480;
+                const spd = drop.magnetPull ? 820 : 480;
                 drop.x += Math.cos(ang) * spd * 0.016;
                 drop.y += Math.sin(ang) * spd * 0.016;
             }
@@ -2207,6 +2511,8 @@ class GameScene extends Phaser.Scene {
             this.triggerFreeze(4500);
         } else if (type === 'drop_bomb') {
             this.triggerScreenBomb(drop.x, drop.y);
+        } else if (type === 'drop_magnet_all') {
+            this.triggerAllArenaMagnet();
         }
 
         if (window.uiManager) window.uiManager.updateHUD();
@@ -2225,10 +2531,29 @@ class GameScene extends Phaser.Scene {
     triggerFreeze(durationMs) {
         this.freezeTimer = durationMs;
         this.enemies.getChildren().forEach(e => {
-            if (e.active) e.setTint(0x77ccee);
+            if (e.active) {
+                e.setTint(0x77ccee);
+                e.wasFrozen = true;
+            }
         });
         if (window.soundManager) window.soundManager.playFreeze();
         this.showDamageText(this.player.x, this.player.y - 45, '❄️ ЗАМОРОЗКА! ❄️', '#3498db');
+    }
+
+    triggerAllArenaMagnet() {
+        let pulled = 0;
+        this.drops.getChildren().forEach(d => {
+            if (!d.active) return;
+            if (d.dropType === 'drop_xp' || d.dropType === 'drop_coin') {
+                d.magnetPull = true;
+                pulled++;
+            }
+        });
+        if (window.soundManager && typeof window.soundManager.playMagnetAll === 'function') {
+            window.soundManager.playMagnetAll();
+        }
+        this.cameras.main.flash(180, 0, 220, 255, false);
+        this.showDamageText(this.player.x, this.player.y - 45, `🧲 МЕГА-МАГНИТ! (${pulled})`, '#00e5ff');
     }
 
     triggerScreenBomb(bx = null, by = null) {
@@ -2267,7 +2592,7 @@ class GameScene extends Phaser.Scene {
                 const pushAng = Phaser.Math.Angle.Between(centerX, centerY, e.x, e.y);
                 e.x += Math.cos(pushAng) * 45;
                 e.y += Math.sin(pushAng) * 45;
-                this.damageEnemy(e, 500);
+                this.damageEnemy(e, 500, 'drop_bomb');
             }
         });
 
@@ -2306,7 +2631,7 @@ class GameScene extends Phaser.Scene {
         if (isEvolution) {
             this.activeSkills[skillId] = 1;
             if (window.soundManager) window.soundManager.playEvolution();
-            if (window.uiManager) window.uiManager.recordEvolutionCreated();
+            if (window.uiManager) window.uiManager.recordEvolutionCreated(skillId);
             this.showDamageText(this.player.x, this.player.y - 50, '✨ ЭВОЛЮЦИЯ! ✨', '#ffd700');
         } else {
             if (!this.activeSkills[skillId]) {
@@ -2387,11 +2712,34 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    spawnSpecificEnemy(type) {
+    spawnEliteEnemy() {
+        if (this.isGameOver || this.isPaused) return;
+        const pool = ['dog', 'cucumber', 'spitter'];
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        this.spawnSpecificEnemy(pick, { isElite: true });
+        this.showDamageText(this.player.x, this.player.y - 45, '👑 ПОЯВИЛСЯ ЭЛИТНЫЙ ВРАГ! 👑', '#ffd700');
+    }
+
+    spawnPigeonSwarmEvent() {
+        if (this.isGameOver || this.isPaused) return;
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const baseX = Phaser.Math.Clamp(this.player.x + side * 620, 70, this.arenaSize - 70);
+        const baseY = this.player.y;
+        this.showDamageText(this.player.x, this.player.y - 55, '🕊️ НАЛЁТ СТАИ ГОЛУБЕЙ! 🕊️', '#74b9ff');
+        if (window.soundManager) window.soundManager.playEnrage();
+
+        for (let i = -3; i <= 3; i++) {
+            const sx = Phaser.Math.Clamp(baseX + Math.abs(i) * 35 * side, 70, this.arenaSize - 70);
+            const sy = Phaser.Math.Clamp(baseY + i * 52, 70, this.arenaSize - 70);
+            this.spawnSpecificEnemy('pigeon', { x: sx, y: sy, speedMult: 1.35 });
+        }
+    }
+
+    spawnSpecificEnemy(type, options = {}) {
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
         const dist = Phaser.Math.Between(580, 720);
-        const x = Phaser.Math.Clamp(this.player.x + Math.cos(angle) * dist, 70, this.arenaSize - 70);
-        const y = Phaser.Math.Clamp(this.player.y + Math.sin(angle) * dist, 70, this.arenaSize - 70);
+        const x = options.x !== undefined ? options.x : Phaser.Math.Clamp(this.player.x + Math.cos(angle) * dist, 70, this.arenaSize - 70);
+        const y = options.y !== undefined ? options.y : Phaser.Math.Clamp(this.player.y + Math.sin(angle) * dist, 70, this.arenaSize - 70);
 
         const t = this.survivalTime;
         let spriteKey = 'enemy_mouse_walk';
@@ -2401,6 +2749,7 @@ class GameScene extends Phaser.Scene {
         let damage = Math.round(10 + t * 0.045);
         let isBoss = false;
         let isRanged = false;
+        const isElite = Boolean(options.isElite);
 
         if (type === 'dog') {
             spriteKey = 'enemy_dog_run';
@@ -2443,24 +2792,41 @@ class GameScene extends Phaser.Scene {
             isBoss = true;
         }
 
-        // Hardcore mode buffs if playing with Barsik
+        // Apply Game Mode multipliers
+        hp *= (this.modeConfig.hpMult || 1.0);
+        speed *= (this.modeConfig.speedMult || 1.0) * (options.speedMult || 1.0);
+
+        // Apply Elite buffs
+        if (isElite && !isBoss) {
+            hp *= 3.5;
+            speed *= 1.12;
+            damage = Math.round(damage * 1.35);
+        }
+
+        // Optional Hardcore mode buffs
         if (this.isHardcoreHero) {
-            hp *= 1.15;
+            hp *= 1.25;
             speed *= 1.15;
             damage = Math.round(damage * 1.25);
         }
 
         const enemy = this.enemies.create(x, y, spriteKey);
-        enemy.play(animKey);
+        if (this.anims.exists(animKey) && this.anims.get(animKey).frames.length > 0) {
+            enemy.play(animKey);
+        }
         enemy.setDepth(8);
         enemy.hp = hp;
         enemy.maxHp = hp;
         enemy.baseSpeed = speed;
         enemy.damage = damage;
         enemy.isBoss = isBoss;
+        enemy.isElite = isElite;
         enemy.isRanged = isRanged;
         enemy.enemyType = type;
         enemy.lastShootTime = this.time.now + Phaser.Math.Between(500, 2000);
+        if (enemy.body && typeof enemy.setMass === 'function') {
+            enemy.setMass(isBoss ? 25 : isElite ? 5 : 1);
+        }
 
         // Ground Drop Shadow under enemy
         const shadow = this.add.image(x, y + 14, 'shadow_char');
@@ -2494,6 +2860,13 @@ class GameScene extends Phaser.Scene {
         } else if (type === 'spitter') {
             threatRing.setTint(0x33ff66); // Neon toxic glow under ranged spitters
         }
+        if (isElite && !isBoss) {
+            threatRing.setTint(0xffd700);
+            threatRing.setScale(1.45);
+            threatRing.setAlpha(0.85);
+            enemy.setTint(0xffd700);
+            enemy.setScale(1.3);
+        }
         enemy.threatRing = threatRing;
 
         if (isBoss) {
@@ -2510,7 +2883,7 @@ class GameScene extends Phaser.Scene {
                 enemy.body.setSize(60, 60);
             }
         } else {
-            enemy.body.setSize(34, 34);
+            enemy.body.setSize(isElite ? 42 : 34, isElite ? 42 : 34);
         }
     }
 
@@ -2536,8 +2909,13 @@ class GameScene extends Phaser.Scene {
             }
 
             if (isFrozen) {
+                e.wasFrozen = true;
                 e.body.setVelocity(0, 0);
                 return;
+            } else if (e.wasFrozen) {
+                e.wasFrozen = false;
+                e.clearTint();
+                if (e.isElite) e.setTint(0xffd700);
             }
 
             const dist = Phaser.Math.Distance.Between(e.x, e.y, px, py);
@@ -2553,6 +2931,8 @@ class GameScene extends Phaser.Scene {
             } else if (!e.isBoss) {
                 if (e.valerianSlowTimer > 0) {
                     e.setTint(0x76d7c4);
+                } else if (e.isElite) {
+                    e.setTint(0xffd700);
                 } else {
                     e.clearTint();
                 }
@@ -2673,7 +3053,7 @@ class GameScene extends Phaser.Scene {
             if (!e.active) return;
             const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
             if (dist < 320) {
-                this.damageEnemy(e, 100);
+                this.damageEnemy(e, 100, 'revive_nova');
                 const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
                 e.x += Math.cos(ang) * 160;
                 e.y += Math.sin(ang) * 160;
@@ -2775,6 +3155,9 @@ class GameScene extends Phaser.Scene {
         if (vig) vig.classList.remove('active', 'low-hp-pulse');
 
         if (window.uiManager) {
+            if (this.isHardcoreHero) {
+                window.uiManager.hardcoreVictory = true;
+            }
             window.uiManager.showVictoryModal();
         }
     }

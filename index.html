@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Кот Выживший: Эвакуация | VK Игры</title>
+    <title>Котопокалипсис: Выживание</title>
     <link rel="icon" type="image/png" href="assets/icon_512.png">
-    <link rel="stylesheet" href="style.css?v=4.0">
-
-    <!-- VK Bridge SDK for VK Games -->
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-    <!-- Yandex Games SDK (fallback) -->
-    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <link rel="stylesheet" href="style.css?v=5.0">
+    <!-- Platform SDKs (VK Bridge / Yandex) deferred until release / embedded iframe -->
 </head>
 <body>
     <div id="app-container">
@@ -38,14 +34,23 @@
                     <div class="hero-preview-info">
                         <span id="menu-selected-hero-name" class="hero-preview-name">Барсик</span>
                         <div class="hero-preview-stats">
-                            <span id="menu-hero-hp-badge">❤️ 160 HP</span>
-                            <span id="menu-hero-spd-badge">⚡ 215</span>
-                            <span id="menu-hero-evac-badge" style="color: #2ecc71; font-weight: bold;">⏱️ 10 мин</span>
+                            <span id="menu-hero-hp-badge">❤️ 120 HP</span>
+                            <span id="menu-hero-spd-badge">⚡ 210</span>
+                            <span id="menu-hero-ult-badge" style="color: #74b9ff; font-weight: bold;">🐟 Ульта</span>
                             <img id="menu-hero-weapon-img" src="assets/proj_fish.png" class="mini-weapon-icon" alt="Weapon" />
                         </div>
                     </div>
                 </div>
                 <button id="btn-next-hero" class="carousel-arrow">▶</button>
+            </div>
+
+            <!-- Arena / Mode Selector & Hardcore Toggle -->
+            <div class="mode-selector-wrap">
+                <div id="mode-selector" class="mode-pills-row"></div>
+                <label class="hardcore-toggle-pill">
+                    <input type="checkbox" id="toggle-hardcore" />
+                    <span data-i18n="hardcoreLabel">💀 ХАРДКОР (+50% монет)</span>
+                </label>
             </div>
 
             <div class="menu-actions">
@@ -58,7 +63,14 @@
                         <span id="quests-badge" class="notif-badge hidden">!</span>
                     </button>
                 </div>
-                <div class="controls-hint" data-i18n="controlsHint">WASD / Стрелки / Экранный джойстик / Пробел (Рывок)</div>
+                <div class="menu-sub-row">
+                    <button id="btn-codex" class="btn btn-secondary">📖 <span data-i18n="codex" style="margin-left:5px;">ЭВОЛЮЦИИ</span></button>
+                    <button id="btn-daily" class="btn btn-green" style="position: relative;">
+                        🎁 <span data-i18n="dailyRewards" style="margin-left:5px;">НАГРАДЫ</span>
+                        <span id="daily-badge" class="notif-badge hidden">!</span>
+                    </button>
+                </div>
+                <div class="controls-hint" data-i18n="controlsHint">WASD / Стрелки / Джойстик • Пробел: Рывок • E: Ульта • Esc: Пауза</div>
             </div>
         </div>
 
@@ -91,7 +103,10 @@
                         <span id="hud-kills"><img src="assets/ui_skull.png" class="ui-stat-icon" alt="Kills" /> 0</span>
                         <span id="hud-coins">0 <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" /></span>
                     </div>
-                    <button id="btn-pause" class="hud-btn" title="Пауза (Esc)">⏸️</button>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div id="hud-combo-badge" class="hud-combo-badge hidden">🔥 x0</div>
+                        <button id="btn-pause" class="hud-btn" title="Пауза (Esc)">⏸️</button>
+                    </div>
                 </div>
 
                 <div class="hud-bars-group">
@@ -108,10 +123,16 @@
 
                 <!-- Active Skills Badges Tray -->
                 <div id="hud-skills-tray" class="hud-skills-tray"></div>
+
+                <!-- First-Run Controls Onboarding Tip -->
+                <div id="hud-onboarding" class="hud-onboarding hidden">
+                    🐾 Двигайся (WASD / Джойстик) • <b>Space</b> — Рывок • <b>E</b> — Ульта • Оружие атакует само!
+                </div>
             </div>
 
-            <!-- Mobile Action Buttons -->
-            <button id="btn-hud-dash" class="btn-hud-dash">⚡</button>
+            <!-- Mobile / Quick Action Buttons -->
+            <button id="btn-hud-ult" class="btn-hud-ult" title="Ульта (E)">🐟<span class="hud-key-cap">E</span></button>
+            <button id="btn-hud-dash" class="btn-hud-dash" title="Рывок (Space)">⚡</button>
 
             <!-- Virtual Dynamic Joystick -->
             <div id="joystick-base" class="hidden">
@@ -153,6 +174,31 @@
             </div>
         </div>
 
+        <!-- Daily Rewards Modal -->
+        <div id="modal-daily" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" style="color: #2ecc71;">🎁 <span data-i18n="dailyRewards">НАГРАДЫ</span></h2>
+                    <button class="close-btn" id="btn-close-daily">&times;</button>
+                </div>
+                <p style="font-size: 0.85rem; color: #bdc3c7;" data-i18n="dailySubtitle">Заходи каждый день и забирай бонусные монеты!</p>
+                <div id="daily-grid" class="daily-grid"></div>
+                <button id="btn-claim-daily" class="btn btn-green">ЗАБРАТЬ НАГРАДУ</button>
+            </div>
+        </div>
+
+        <!-- Evolution Codex Modal -->
+        <div id="modal-codex" class="modal-overlay hidden" style="z-index: 150;">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2 class="modal-title" style="color: #ffd700;">📖 <span data-i18n="codex">ЭВОЛЮЦИИ</span></h2>
+                    <button class="close-btn" id="btn-close-codex">&times;</button>
+                </div>
+                <p style="font-size: 0.82rem; color: #bdc3c7;" data-i18n="codexSubtitle">Собери оружие 5 ур. + нужную пассивку, чтобы открыть супер-эволюцию!</p>
+                <div id="codex-list" class="codex-scroll-list"></div>
+            </div>
+        </div>
+
         <!-- Heroes Select Modal -->
         <div id="modal-heroes" class="modal-overlay hidden">
             <div class="modal-content">
@@ -182,9 +228,10 @@
         <div id="modal-pause" class="modal-overlay hidden">
             <div class="modal-content">
                 <h2 class="modal-title" data-i18n="paused">ПАУЗА</h2>
-                <p style="color: #cbd5e1; font-size: 0.9rem; margin: -4px 0 16px 0;">Нажмите <kbd style="background: rgba(255,255,255,0.18); padding: 2px 7px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255,255,255,0.35);">Esc</kbd> или кнопку ниже, чтобы продолжить</p>
+                <p style="color: #cbd5e1; font-size: 0.9rem; margin: -4px 0 6px 0;">Нажмите <kbd style="background: rgba(255,255,255,0.18); padding: 2px 7px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255,255,255,0.35);">Esc</kbd> или кнопку ниже, чтобы продолжить</p>
                 <div class="modal-actions">
                     <button id="btn-resume" class="btn btn-green" data-i18n="resume">ПРОДОЛЖИТЬ</button>
+                    <button id="btn-pause-codex" class="btn btn-blue">📖 Таблица эволюций</button>
                     <button id="btn-pause-menu" class="btn btn-secondary" data-i18n="toMenu">В МЕНЮ</button>
                 </div>
             </div>
@@ -192,7 +239,7 @@
 
         <!-- Game Over Modal -->
         <div id="modal-gameover" class="modal-overlay hidden">
-            <div class="modal-content">
+            <div class="modal-content" style="max-height: 92vh; overflow-y: auto;">
                 <h2 class="modal-title" style="color: #e74c3c;" data-i18n="gameOver">ИГРА ОКОНЧЕНА</h2>
                 <div class="gameover-stats">
                     <div class="gameover-stat-row">
@@ -208,6 +255,7 @@
                         <span id="go-coins" style="font-weight: bold; color: #f1c40f; display: inline-flex; align-items: center; gap: 4px;">0 <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" /></span>
                     </div>
                 </div>
+                <div id="go-damage-stats" class="damage-stats-box hidden"></div>
                 <div class="modal-actions">
                     <button id="btn-revive" class="btn btn-accent" data-i18n="revive">ВОСКРЕСНУТЬ (РЕКЛАМА)</button>
                     <button id="btn-double-coins" class="btn btn-blue" data-i18n="doubleCoins">УДВОИТЬ МОНЕТЫ (РЕКЛАМА)</button>
@@ -229,21 +277,21 @@
 
         <!-- Victory Modal -->
         <div id="modal-victory" class="modal-overlay hidden">
-            <div class="modal-content victory-modal-content">
+            <div class="modal-content victory-modal-content" style="max-height: 92vh; overflow-y: auto;">
                 <div class="victory-crown-badge">👑 🚁 🐾</div>
                 <h2 class="modal-title" style="color: #2ecc71; text-shadow: 0 0 16px rgba(46, 204, 113, 0.7);">МИССИЯ ВЫПОЛНЕНА!</h2>
-                <p class="victory-subtitle" style="color: #f1c40f; font-weight: bold; margin-bottom: 8px; font-size: 1.05rem;">БОРТ «9 ЖИЗНЕЙ» ЭВАКУИРОВАЛ КОТИКА!</p>
+                <p class="victory-subtitle" style="color: #f1c40f; font-weight: bold; margin-bottom: 4px; font-size: 1.05rem;">БОРТ «9 ЖИЗНЕЙ» ЭВАКУИРОВАЛ КОТИКА!</p>
 
                 <!-- Mini Video Ending Cutscene -->
-                <div class="victory-video-container" style="margin: 8px 0 12px 0; border-radius: 10px; overflow: hidden; border: 2px solid #f1c40f; box-shadow: 0 4px 18px rgba(0,0,0,0.6); background: #000;">
-                    <video id="victory-video" loop muted playsinline preload="none" style="width: 100%; max-height: 160px; display: block; object-fit: cover;">
+                <div class="victory-video-container" style="margin: 4px 0 8px 0; border-radius: 10px; overflow: hidden; border: 2px solid #f1c40f; box-shadow: 0 4px 18px rgba(0,0,0,0.6); background: #000;">
+                    <video id="victory-video" loop muted playsinline preload="none" style="width: 100%; max-height: 140px; display: block; object-fit: cover;">
                         <source src="assets/cat_evacuation_ending.mp4" type="video/mp4">
                     </video>
                 </div>
                 <div class="gameover-stats">
                     <div class="gameover-stat-row">
                         <span data-i18n="survivedTime">Время операции:</span>
-                        <span id="vic-time" style="font-weight: bold; color: #2ecc71;">05:30</span>
+                        <span id="vic-time" style="font-weight: bold; color: #2ecc71;">05:00</span>
                     </div>
                     <div class="gameover-stat-row">
                         <span data-i18n="monstersDefeated">Побеждено врагов:</span>
@@ -258,6 +306,7 @@
                         <span style="font-weight: bold; color: #ffd700;">+500 <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" /></span>
                     </div>
                 </div>
+                <div id="vic-damage-stats" class="damage-stats-box hidden"></div>
                 <div class="modal-actions">
                     <button id="btn-victory-double" class="btn btn-blue">УДВОИТЬ НАГРАДУ (РЕКЛАМА)</button>
                     <button id="btn-victory-endless" class="btn btn-primary" style="background: linear-gradient(135deg, #e67e22, #d35400);">БЕСКОНЕЧНЫЙ РЕЖИМ ⚔️</button>
@@ -269,10 +318,10 @@
 
     <!-- Scripts -->
     <script src="lib/phaser.min.js"></script>
-    <script src="js/audio.js?v=4.1"></script>
-    <script src="js/data.js?v=4.1"></script>
-    <script src="js/yandex.js?v=4.1"></script>
-    <script src="js/game.js?v=4.1"></script>
-    <script src="js/ui.js?v=4.1"></script>
+    <script src="js/audio.js?v=5.0"></script>
+    <script src="js/data.js?v=5.0"></script>
+    <script src="js/yandex.js?v=5.0"></script>
+    <script src="js/game.js?v=5.0"></script>
+    <script src="js/ui.js?v=5.0"></script>
 </body>
 </html>

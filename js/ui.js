@@ -11,15 +11,25 @@ class UIManager {
         this.totalCoins = 0;
         this.unlockedHeroes = ['barsik'];
         this.selectedHeroId = 'barsik';
+        this.selectedModeId = 'park';
+        this.isHardcoreMode = false;
         this.metaTalents = { hp: 0, dmg: 0, speed: 0, greed: 0, magnet: 0 };
         this.claimedQuests = [];
         this.bestTime = 0;
         this.bestKills = 0;
         this.bossDefeated = false;
+        this.dozerDefeated = false;
         this.evoCreated = false;
+        this.discoveredEvos = [];
+        this.hardcoreVictory = false;
         this.maxLevelReached = 1;
+        this.dailyStreak = 0;
+        this.lastDailyClaimDate = null;
+        this.victoryDoubleUsed = false;
 
         window.selectedHeroId = this.selectedHeroId;
+        window.selectedModeId = this.selectedModeId;
+        window.isHardcoreMode = this.isHardcoreMode;
         window.metaTalents = this.metaTalents;
 
         this.init();
@@ -31,6 +41,7 @@ class UIManager {
         this.renderMainMenu();
         this.updateLocalization();
         this.updateQuestBadge();
+        this.updateDailyBadge();
         // Background pre-warm Phaser engine and assets to eliminate initial freeze
         setTimeout(() => this.initPhaserGame(), 100);
     }
@@ -42,14 +53,23 @@ class UIManager {
                 this.totalCoins = data.totalCoins || 0;
                 this.unlockedHeroes = data.unlockedHeroes || ['barsik'];
                 this.selectedHeroId = data.selectedHeroId || 'barsik';
+                this.selectedModeId = data.selectedModeId || 'park';
+                this.isHardcoreMode = Boolean(data.isHardcoreMode);
                 this.metaTalents = data.metaTalents || { hp: 0, dmg: 0, speed: 0, greed: 0, magnet: 0 };
                 this.claimedQuests = data.claimedQuests || [];
                 this.bestTime = data.bestTime || 0;
                 this.bestKills = data.bestKills || 0;
                 this.bossDefeated = data.bossDefeated || false;
+                this.dozerDefeated = data.dozerDefeated || false;
                 this.evoCreated = data.evoCreated || false;
+                this.discoveredEvos = data.discoveredEvos || [];
+                this.hardcoreVictory = data.hardcoreVictory || false;
                 this.maxLevelReached = data.maxLevelReached || 1;
+                this.dailyStreak = data.dailyStreak || 0;
+                this.lastDailyClaimDate = data.lastDailyClaimDate || null;
                 window.selectedHeroId = this.selectedHeroId;
+                window.selectedModeId = this.selectedModeId;
+                window.isHardcoreMode = this.isHardcoreMode;
                 window.metaTalents = this.metaTalents;
             }
         }
@@ -60,13 +80,20 @@ class UIManager {
             totalCoins: this.totalCoins,
             unlockedHeroes: this.unlockedHeroes,
             selectedHeroId: this.selectedHeroId,
+            selectedModeId: this.selectedModeId,
+            isHardcoreMode: this.isHardcoreMode,
             metaTalents: this.metaTalents,
             claimedQuests: this.claimedQuests,
             bestTime: this.bestTime,
             bestKills: this.bestKills,
             bossDefeated: this.bossDefeated,
+            dozerDefeated: this.dozerDefeated,
             evoCreated: this.evoCreated,
-            maxLevelReached: this.maxLevelReached
+            discoveredEvos: this.discoveredEvos,
+            hardcoreVictory: this.hardcoreVictory,
+            maxLevelReached: this.maxLevelReached,
+            dailyStreak: this.dailyStreak,
+            lastDailyClaimDate: this.lastDailyClaimDate
         };
         if (window.yandexSDK) {
             await window.yandexSDK.saveProgress(data);
@@ -145,6 +172,40 @@ class UIManager {
             this.showQuestsModal();
         });
 
+        // Codex & Daily buttons
+        const btnCodex = document.getElementById('btn-codex');
+        if (btnCodex) {
+            btnCodex.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.showCodexModal();
+            });
+        }
+        const btnDaily = document.getElementById('btn-daily');
+        if (btnDaily) {
+            btnDaily.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.showDailyModal();
+            });
+        }
+        const btnClaimDaily = document.getElementById('btn-claim-daily');
+        if (btnClaimDaily) {
+            btnClaimDaily.addEventListener('click', () => {
+                this.claimDailyReward();
+            });
+        }
+
+        // Hardcore Mode Toggle
+        const hardcoreToggle = document.getElementById('toggle-hardcore');
+        if (hardcoreToggle) {
+            hardcoreToggle.checked = this.isHardcoreMode;
+            hardcoreToggle.addEventListener('change', (e) => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.isHardcoreMode = e.target.checked;
+                window.isHardcoreMode = this.isHardcoreMode;
+                this.saveGameData();
+            });
+        }
+
         // Close Modals
         document.getElementById('btn-close-heroes').addEventListener('click', () => {
             if (window.soundManager) window.soundManager.playClick();
@@ -160,6 +221,28 @@ class UIManager {
             document.getElementById('modal-quests').classList.add('hidden');
             this.renderMainMenu();
         });
+        const btnCloseCodex = document.getElementById('btn-close-codex');
+        if (btnCloseCodex) {
+            btnCloseCodex.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                document.getElementById('modal-codex').classList.add('hidden');
+            });
+        }
+        const btnCloseDaily = document.getElementById('btn-close-daily');
+        if (btnCloseDaily) {
+            btnCloseDaily.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                document.getElementById('modal-daily').classList.add('hidden');
+            });
+        }
+
+        const btnPauseCodex = document.getElementById('btn-pause-codex');
+        if (btnPauseCodex) {
+            btnPauseCodex.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.showCodexModal();
+            });
+        }
 
         // Sound Toggle
         const soundBtn = document.getElementById('btn-sound-toggle');
@@ -194,6 +277,19 @@ class UIManager {
                 const heroesModal = document.getElementById('modal-heroes');
                 const shopModal = document.getElementById('modal-shop');
                 const questsModal = document.getElementById('modal-quests');
+                const codexModal = document.getElementById('modal-codex');
+                const dailyModal = document.getElementById('modal-daily');
+
+                if (codexModal && !codexModal.classList.contains('hidden')) {
+                    if (window.soundManager) window.soundManager.playClick();
+                    codexModal.classList.add('hidden');
+                    return;
+                }
+                if (dailyModal && !dailyModal.classList.contains('hidden')) {
+                    if (window.soundManager) window.soundManager.playClick();
+                    dailyModal.classList.add('hidden');
+                    return;
+                }
 
                 if (heroesModal && !heroesModal.classList.contains('hidden')) {
                     if (window.soundManager) window.soundManager.playClick();
@@ -218,12 +314,19 @@ class UIManager {
             }
         });
 
-        // Mobile Dash button
+        // Mobile Dash & Ultimate buttons
         const dashBtn = document.getElementById('btn-hud-dash');
         if (dashBtn) {
             dashBtn.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 if (this.gameScene) this.gameScene.tryDash();
+            });
+        }
+        const ultBtn = document.getElementById('btn-hud-ult');
+        if (ultBtn) {
+            ultBtn.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                if (this.gameScene) this.gameScene.tryUltimate();
             });
         }
 
@@ -377,6 +480,10 @@ class UIManager {
         document.getElementById('modal-gameover').classList.add('hidden');
         document.getElementById('modal-levelup').classList.add('hidden');
         document.getElementById('modal-chest').classList.add('hidden');
+        const codexM = document.getElementById('modal-codex');
+        if (codexM) codexM.classList.add('hidden');
+        const dailyM = document.getElementById('modal-daily');
+        if (dailyM) dailyM.classList.add('hidden');
 
         // Coins & Highscore
         document.getElementById('menu-total-coins').innerHTML = `${this.totalCoins} <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" />`;
@@ -413,10 +520,9 @@ class UIManager {
             spdBadge.innerText = `⚡ ${curHero.speed}`;
         }
 
-        const evacBadge = document.getElementById('menu-hero-evac-badge');
-        if (evacBadge) {
-            const evacMins = Math.round((curHero.evacTargetSeconds || 600) / 60);
-            evacBadge.innerText = `⏱️ ${evacMins} мин`;
+        const ultBadge = document.getElementById('menu-hero-ult-badge');
+        if (ultBadge) {
+            ultBadge.innerText = `${curHero.ultIcon || '⚡'} Ульта`;
         }
 
         const weaponImg = document.getElementById('menu-hero-weapon-img');
@@ -426,18 +532,57 @@ class UIManager {
             weaponImg.title = this.t(weaponSkill.nameKey);
         }
 
+        const hardcoreToggle = document.getElementById('toggle-hardcore');
+        if (hardcoreToggle) {
+            hardcoreToggle.checked = this.isHardcoreMode;
+        }
+
+        this.renderModeSelector();
         this.updateQuestBadge();
+        this.updateDailyBadge();
     }
 
-    updateQuestBadge() {
-        const state = {
+    renderModeSelector() {
+        const wrap = document.getElementById('mode-selector');
+        if (!wrap || typeof GAME_MODES === 'undefined') return;
+        wrap.innerHTML = '';
+
+        GAME_MODES.forEach(mode => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `mode-pill ${this.selectedModeId === mode.id ? 'active' : ''}`;
+            const mins = Math.round(mode.evacSeconds / 60);
+            btn.title = this.t(mode.descKey);
+            btn.innerHTML = `
+                <span>${mode.icon} ${this.t(mode.nameKey)}</span>
+                <small>${mins} мин • x${mode.coinMult}🪙</small>
+            `;
+            btn.addEventListener('click', () => {
+                if (window.soundManager) window.soundManager.playClick();
+                this.selectedModeId = mode.id;
+                window.selectedModeId = mode.id;
+                this.saveGameData();
+                this.renderModeSelector();
+            });
+            wrap.appendChild(btn);
+        });
+    }
+
+    getQuestState() {
+        return {
             bestTime: this.bestTime,
             bestKills: this.bestKills,
             bossDefeated: this.bossDefeated,
+            dozerDefeated: this.dozerDefeated,
             evoCreated: this.evoCreated,
+            discoveredEvos: this.discoveredEvos,
+            hardcoreVictory: this.hardcoreVictory,
             maxLevelReached: this.maxLevelReached
         };
+    }
 
+    updateQuestBadge() {
+        const state = this.getQuestState();
         const readyCount = QUESTS.filter(q => !this.claimedQuests.includes(q.id) && q.check(state)).length;
         const badge = document.getElementById('quests-badge');
         if (badge) {
@@ -450,17 +595,113 @@ class UIManager {
         }
     }
 
+    getTodayDateStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    canClaimDaily() {
+        return this.lastDailyClaimDate !== this.getTodayDateStr();
+    }
+
+    updateDailyBadge() {
+        const badge = document.getElementById('daily-badge');
+        if (badge) {
+            if (this.canClaimDaily()) {
+                badge.innerText = '1';
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    }
+
+    showDailyModal() {
+        const grid = document.getElementById('daily-grid');
+        const claimBtn = document.getElementById('btn-claim-daily');
+        if (!grid || typeof DAILY_REWARDS === 'undefined') return;
+
+        grid.innerHTML = '';
+        const canClaim = this.canClaimDaily();
+        const currentIdx = this.dailyStreak % DAILY_REWARDS.length;
+
+        DAILY_REWARDS.forEach((reward, idx) => {
+            const isClaimed = idx < currentIdx || (!canClaim && idx === currentIdx);
+            const isToday = canClaim && idx === currentIdx;
+            const card = document.createElement('div');
+            card.className = `daily-card ${isClaimed ? 'claimed' : isToday ? 'today' : ''}`;
+            card.innerHTML = `
+                <span style="font-weight:800;">${reward.label}</span>
+                <span style="color:#ffd32a; font-weight:900; font-size:0.95rem;">+${reward.coins} <img src="assets/ui_coin.png" class="ui-coin-icon" style="width:16px;height:16px;" /></span>
+                <span style="font-size:0.7rem; color:${isClaimed ? '#2ecc71' : isToday ? '#ffd32a' : '#94a3b8'};">
+                    ${isClaimed ? '✓' : isToday ? 'СЕГОДНЯ' : '🔒'}
+                </span>
+            `;
+            grid.appendChild(card);
+        });
+
+        if (claimBtn) {
+            claimBtn.disabled = !canClaim;
+            claimBtn.className = `btn ${canClaim ? 'btn-green' : 'btn-disabled'}`;
+            claimBtn.innerText = canClaim ? `ЗАБРАТЬ +${DAILY_REWARDS[currentIdx].coins} 🪙` : 'УЖЕ ПОЛУЧЕНО СЕГОДНЯ ✓';
+        }
+
+        document.getElementById('modal-daily').classList.remove('hidden');
+    }
+
+    claimDailyReward() {
+        if (!this.canClaimDaily() || typeof DAILY_REWARDS === 'undefined') return;
+        const currentIdx = this.dailyStreak % DAILY_REWARDS.length;
+        const reward = DAILY_REWARDS[currentIdx];
+
+        this.totalCoins += reward.coins;
+        this.lastDailyClaimDate = this.getTodayDateStr();
+        this.dailyStreak = (this.dailyStreak + 1) % DAILY_REWARDS.length;
+        this.saveGameData();
+
+        if (window.soundManager) window.soundManager.playLevelUp();
+        this.renderMainMenu();
+        this.showDailyModal();
+    }
+
+    showCodexModal() {
+        const list = document.getElementById('codex-list');
+        if (!list) return;
+        list.innerHTML = '';
+
+        const weaponsWithEvo = Object.values(SKILLS_DATABASE).filter(s => s.type === 'weapon' && s.evoId);
+        weaponsWithEvo.forEach(w => {
+            const passive = SKILLS_DATABASE[w.evoPassive];
+            const evo = SKILLS_DATABASE[w.evoId];
+            if (!passive || !evo) return;
+            const isDiscovered = this.discoveredEvos.includes(evo.id);
+
+            const row = document.createElement('div');
+            row.className = `codex-row ${isDiscovered ? 'discovered' : ''}`;
+            row.innerHTML = `
+                <div class="codex-formula">
+                    <img src="assets/${w.icon}.png" title="${this.t(w.nameKey)}" />
+                    <span style="font-weight:900; color:#94a3b8;">+</span>
+                    <img src="assets/${passive.icon}.png" title="${this.t(passive.nameKey)}" />
+                    <span style="font-weight:900; color:#ffd700;">=</span>
+                    <img src="assets/${evo.icon}.png" style="border:1.5px solid #ffd700;" title="${this.t(evo.nameKey)}" />
+                </div>
+                <div class="codex-info">
+                    <h4>${this.t(evo.nameKey)} ${isDiscovered ? '🌟' : ''}</h4>
+                    <p>${this.t(w.nameKey)} + ${this.t(passive.nameKey)}</p>
+                </div>
+            `;
+            list.appendChild(row);
+        });
+
+        document.getElementById('modal-codex').classList.remove('hidden');
+    }
+
     showQuestsModal() {
         const container = document.getElementById('quests-list');
         container.innerHTML = '';
 
-        const state = {
-            bestTime: this.bestTime,
-            bestKills: this.bestKills,
-            bossDefeated: this.bossDefeated,
-            evoCreated: this.evoCreated,
-            maxLevelReached: this.maxLevelReached
-        };
+        const state = this.getQuestState();
 
         QUESTS.forEach(quest => {
             const isClaimed = this.claimedQuests.includes(quest.id);
@@ -492,8 +733,8 @@ class UIManager {
                 this.claimedQuests.push(id);
                 this.totalCoins += reward;
                 this.saveGameData();
-                this.showQuestsModal();
                 this.renderMainMenu();
+                this.showQuestsModal();
                 if (window.soundManager) window.soundManager.playCoinPickup();
             });
         });
@@ -519,7 +760,7 @@ class UIManager {
                     <div class="hero-stats">
                         <span>❤️ HP: ${hero.maxHp}</span>
                         <span>⚡ ${this.t('speed')}: ${hero.speed}</span>
-                        <span>⏱️ ${Math.round((hero.evacTargetSeconds || 600) / 60)} мин</span>
+                        <span>${hero.ultIcon || '⚡'} ${this.t('ult')}</span>
                     </div>
                 </div>
                 <div class="hero-action">
@@ -535,20 +776,20 @@ class UIManager {
         });
 
         container.querySelectorAll('.select-hero-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
                 this.selectedHeroId = id;
                 window.selectedHeroId = id;
                 this.saveGameData();
-                this.showHeroesModal();
                 this.renderMainMenu();
+                this.showHeroesModal();
                 if (window.soundManager) window.soundManager.playClick();
             });
         });
 
         container.querySelectorAll('.buy-hero-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
                 const hero = CHARACTERS.find(c => c.id === id);
                 if (hero && this.totalCoins >= hero.price) {
                     this.totalCoins -= hero.price;
@@ -556,8 +797,8 @@ class UIManager {
                     this.selectedHeroId = id;
                     window.selectedHeroId = id;
                     this.saveGameData();
-                    this.showHeroesModal();
                     this.renderMainMenu();
+                    this.showHeroesModal();
                     if (window.soundManager) window.soundManager.playCoinPickup();
                 } else {
                     if (window.soundManager) window.soundManager.playNoise(0.2, 0.2);
@@ -653,17 +894,39 @@ class UIManager {
 
         this.reviveUsedInRun = false;
         this.doubleCoinsUsed = false;
+        this.victoryDoubleUsed = false;
         window.gameStarted = true;
+
+        const btnVicDouble = document.getElementById('btn-victory-double');
+        if (btnVicDouble) btnVicDouble.style.display = 'block';
+        const comboBadge = document.getElementById('hud-combo-badge');
+        if (comboBadge) comboBadge.classList.add('hidden');
+        const evacBanner = document.getElementById('evac-hud-banner');
+        if (evacBanner) evacBanner.classList.add('hidden');
+
+        // Set Hero Ult icon on HUD button & show brief onboarding tip
+        const curHero = CHARACTERS.find(c => c.id === this.selectedHeroId) || CHARACTERS[0];
+        const ultBtn = document.getElementById('btn-hud-ult');
+        if (ultBtn) {
+            ultBtn.innerHTML = `${curHero.ultIcon || '⚡'}<span class="hud-key-cap">E</span>`;
+            ultBtn.style.opacity = '1.0';
+        }
+        const onboarding = document.getElementById('hud-onboarding');
+        if (onboarding) {
+            onboarding.classList.remove('hidden');
+            if (this._onboardingTimer) clearTimeout(this._onboardingTimer);
+            this._onboardingTimer = setTimeout(() => {
+                if (onboarding) onboarding.classList.add('hidden');
+            }, 6000);
+        }
 
         if (!this.gameInstance) {
             this.initPhaserGame();
         } else {
             const boot = this.gameInstance.scene.getScene('BootScene');
             const gameScene = this.gameInstance.scene.getScene('GameScene');
-            if (boot && boot.load && boot.load.isLoading()) {
-                boot.load.once('complete', () => {
-                    this.gameInstance.scene.start('GameScene');
-                });
+            if (!boot || !boot.assetsReady) {
+                // BootScene.create() will start GameScene automatically because window.gameStarted is true
             } else if (gameScene && gameScene.scene.isActive()) {
                 gameScene.scene.restart();
             } else {
@@ -749,7 +1012,7 @@ class UIManager {
         }
     }
 
-    // Dash UI
+    // Dash & Ultimate UI
     onDashUsed(cooldownMs) {
         const btn = document.getElementById('btn-hud-dash');
         if (btn) {
@@ -759,6 +1022,27 @@ class UIManager {
                 btn.classList.remove('dash-cooling');
                 btn.style.opacity = '1.0';
             }, cooldownMs);
+        }
+    }
+
+    onUltUsed(cooldownMs) {
+        const btn = document.getElementById('btn-hud-ult');
+        if (btn) {
+            btn.style.opacity = '0.35';
+            setTimeout(() => {
+                btn.style.opacity = '1.0';
+            }, cooldownMs);
+        }
+    }
+
+    updateCombo(count) {
+        const badge = document.getElementById('hud-combo-badge');
+        if (!badge) return;
+        if (count >= 5) {
+            badge.innerText = `🔥 x${count}`;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
         }
     }
 
@@ -811,6 +1095,21 @@ class UIManager {
             const curLvl = this.gameScene.activeSkills[skill.id] || 0;
             const isNew = curLvl === 0 && !isEvo;
 
+            let evoHintHtml = '';
+            if (skill.type === 'weapon' && skill.evoId && skill.evoPassive) {
+                const passive = SKILLS_DATABASE[skill.evoPassive];
+                const evo = SKILLS_DATABASE[skill.evoId];
+                if (passive && evo) {
+                    evoHintHtml = `<div class="card-evo-hint"><img src="assets/${passive.icon}.png" /> + ${this.t(passive.nameKey)} → ${this.t(evo.nameKey)}</div>`;
+                }
+            } else if (skill.type === 'passive') {
+                const matchingWeapons = Object.values(SKILLS_DATABASE).filter(w => w.type === 'weapon' && w.evoPassive === skill.id);
+                if (matchingWeapons.length > 0) {
+                    const names = matchingWeapons.map(w => this.t(w.nameKey)).join(', ');
+                    evoHintHtml = `<div class="card-evo-hint">⚡ Эволюция: ${names}</div>`;
+                }
+            }
+
             const card = document.createElement('div');
             card.className = `upgrade-card ${isEvo ? 'upgrade-card-evo' : ''}`;
             card.innerHTML = `
@@ -825,6 +1124,7 @@ class UIManager {
                         </span>
                     </div>
                     <p class="card-desc">${this.t(skill.descKey)}</p>
+                    ${evoHintHtml}
                 </div>
             `;
 
@@ -904,16 +1204,69 @@ class UIManager {
         this.updateHUD();
     }
 
-    recordBossDefeat() {
+    recordBossDefeat(isDozer = false) {
         this.bossDefeated = true;
+        if (isDozer) this.dozerDefeated = true;
         this.saveGameData();
         this.updateQuestBadge();
     }
 
-    recordEvolutionCreated() {
+    recordEvolutionCreated(evoId = null) {
         this.evoCreated = true;
+        if (evoId && !this.discoveredEvos.includes(evoId)) {
+            this.discoveredEvos.push(evoId);
+        }
         this.saveGameData();
         this.updateQuestBadge();
+    }
+
+    renderDamageStats(containerId) {
+        const box = document.getElementById(containerId);
+        if (!box || !this.gameScene || !this.gameScene.damageStats) return;
+
+        const entries = Object.entries(this.gameScene.damageStats).filter(([, dmg]) => dmg > 0);
+        if (entries.length === 0) {
+            box.classList.add('hidden');
+            return;
+        }
+
+        entries.sort((a, b) => b[1] - a[1]);
+        const maxDmg = entries[0][1];
+        const totalDmg = entries.reduce((sum, [, d]) => sum + d, 0);
+
+        const labelMap = {
+            ult_hero: { name: 'Ульта героя', icon: 'assets/ui_trophy.png' },
+            tnt_barrel: { name: 'Взрывные бочки', icon: 'assets/obstacle_tnt_barrel.png' },
+            drop_bomb: { name: 'Бомбочки', icon: 'assets/drop_bomb.png' },
+            revive_nova: { name: 'Воскрешение', icon: 'assets/ui_coin.png' },
+            other: { name: 'Прочее', icon: 'assets/ui_skull.png' }
+        };
+
+        let html = `<div class="damage-stats-title">⚔️ ${this.t('damageStatsTitle')}</div>`;
+        entries.slice(0, 6).forEach(([id, dmg]) => {
+            const skill = SKILLS_DATABASE[id];
+            const name = skill ? this.t(skill.nameKey) : (labelMap[id] ? labelMap[id].name : id);
+            const icon = skill ? `assets/${skill.icon}.png` : (labelMap[id] ? labelMap[id].icon : 'assets/ui_skull.png');
+            const pct = Math.round((dmg / maxDmg) * 100);
+            const share = Math.round((dmg / totalDmg) * 100);
+            html += `
+                <div class="dmg-stat-row">
+                    <img src="${icon}" alt="${name}" />
+                    <div class="dmg-bar-wrap">
+                        <div class="dmg-bar-labels">
+                            <span>${name}</span>
+                            <span>${dmg} (${share}%)</span>
+                        </div>
+                        <div class="dmg-bar-track">
+                            <div class="dmg-bar-fill" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        box.innerHTML = html;
+        box.classList.remove('hidden');
     }
 
     showGameOverModal() {
@@ -925,6 +1278,7 @@ class UIManager {
         document.getElementById('go-time').innerText = `${mins}:${secs}`;
         document.getElementById('go-kills').innerText = `${this.gameScene.kills}`;
         document.getElementById('go-coins').innerHTML = `${this.gameScene.coins} <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" />`;
+        this.renderDamageStats('go-damage-stats');
 
         this.totalCoins += this.gameScene.coins;
         if (this.gameScene.survivalTime > this.bestTime) this.bestTime = this.gameScene.survivalTime;
@@ -1022,6 +1376,7 @@ class UIManager {
         document.getElementById('vic-time').innerText = `${mins}:${secs}`;
         document.getElementById('vic-kills').innerText = `${this.gameScene.kills}`;
         document.getElementById('vic-coins').innerHTML = `${this.gameScene.coins} <img src="assets/ui_coin.png" class="ui-coin-icon" alt="Coins" />`;
+        this.renderDamageStats('vic-damage-stats');
 
         // Victory bonus +500 coins!
         const victoryBonus = 500;
@@ -1123,9 +1478,16 @@ class UIManager {
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     window.uiManager = new UIManager();
     if (window.yandexSDK) {
-        window.yandexSDK.init();
+        try {
+            await window.yandexSDK.init();
+            await window.uiManager.loadSaveData();
+            window.uiManager.renderMainMenu();
+            window.uiManager.updateLocalization();
+        } catch (e) {
+            console.warn('[PlatformSDK] Init fallback:', e);
+        }
     }
 });

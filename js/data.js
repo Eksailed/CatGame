@@ -1,4 +1,4 @@
-// Game Data: Characters, Skills, Evolutions, Quests, Shop & Localization
+// Game Data: Characters, Modes, Skills, Evolutions, Daily Rewards, Quests & Localization
 
 const I18N = {
     ru: {
@@ -6,14 +6,17 @@ const I18N = {
         subtitle: "Котики против Зомби",
         play: "В БОЙ!",
         upgrades: "ТАЛАНТЫ",
-        selectHero: "ВЫБОР КОТИКА",
+        selectHero: "КОТИКИ",
         quests: "КВЕСТЫ",
+        codex: "ЭВОЛЮЦИИ",
+        dailyRewards: "НАГРАДЫ",
         back: "НАЗАД",
         coins: "Монеты",
         level: "Уровень",
         time: "Время",
         kills: "Убито",
         hp: "Здоровье",
+        speed: "Скорость",
         paused: "ПАУЗА",
         resume: "ПРОДОЛЖИТЬ",
         toMenu: "В МЕНЮ",
@@ -35,10 +38,13 @@ const I18N = {
         locked: "Закрыто",
         select: "Выбрать",
         selected: "Выбран",
-        controlsHint: "WASD / Стрелки / Экранный джойстик / Пробел (Рывок)",
+        claim: "ЗАБРАТЬ",
+        claimed: "ПОЛУЧЕНО",
+        controlsHint: "WASD / Стрелки / Джойстик • Пробел: Рывок • E: Ульта • Esc: Пауза",
         soundOn: "Звук: ВКЛ",
         soundOff: "Звук: ВЫКЛ",
         dash: "РЫВОК",
+        ult: "УЛЬТА",
         chestTitle: "ТАИНСТВЕННЫЙ СУНДУК!",
         chestOpen: "ОТКРЫТЬ!",
         chestReward: "Награды сундука:",
@@ -48,14 +54,26 @@ const I18N = {
         afkWarning: "НЕ СТОЙ НА МЕСТЕ! ВРАГИ В ЯРОСТИ!",
         heroStatsHp: "Здоровье",
         heroStatsSpeed: "Скорость",
+        hardcoreLabel: "💀 ХАРДКОР (+50% монет)",
+        damageStatsTitle: "Урон по оружию",
+        codexSubtitle: "Собери оружие 5 ур. + нужную пассивку, чтобы открыть супер-эволюцию!",
+        dailySubtitle: "Заходи каждый день и забирай бонусные монеты!",
+
+        // Game Modes
+        mode_park_name: "Центральный Парк",
+        mode_park_desc: "Быстрый рейд: 5 мин • Обычные враги • x1.0 монет",
+        mode_night_name: "Ночной Город",
+        mode_night_desc: "Классика: 8 мин • Опаснее волны • x1.35 монет",
+        mode_factory_name: "Промзона",
+        mode_factory_desc: "Кошмар: 10 мин • Яростные орды • x1.75 монет",
 
         // Heroes
         hero_barsik: "Барсик",
-        hero_barsik_desc: "Храбрый рыжий кот. Оружие: Рыбий бумеранг. ⚠️ ХАРДКОР: 95 HP, враги бегут быстрее! Эвакуация: 10 мин.",
+        hero_barsik_desc: "Храбрый рыжий кот. Оружие: Рыбий бумеранг. Ульта (E): Рыбный шквал во все стороны.",
         hero_murzik: "Мурзик",
-        hero_murzik_desc: "Быстрый ниндзя. Оружие: Клубок ниток. +20% скорости. Эвакуация: 15 мин.",
+        hero_murzik_desc: "Быстрый ниндзя. Оружие: Клубок ниток. +Скорость. Ульта (E): Теневой рывок + 8 сюрикенов.",
         hero_pukhlyash: "Пухляш",
-        hero_pukhlyash_desc: "Пушистый крепыш. Оружие: Мурчащая аура. +50% HP. Эвакуация: 20 мин.",
+        hero_pukhlyash_desc: "Пушистый крепыш. Оружие: Мурчащая аура. +HP. Ульта (E): Мега-топот с волной и лечением.",
 
         // Skills
         skill_fish_name: "Рыбный бумеранг",
@@ -63,35 +81,35 @@ const I18N = {
         skill_yarn_name: "Клубок ниток",
         skill_yarn_desc: "Рикошетит между зомби, нанося урон нескольким целям.",
         skill_aura_name: "Мурчащая аура",
-        skill_aura_desc: "Периодический звуковой мур-импульс поражает всех вокруг.",
+        skill_aura_desc: "Периодический звуковой мур-импульс поражает и отталкивает всех вокруг.",
         skill_laser_name: "Лазерная указка",
         skill_laser_desc: "Смертоносный красный луч испепеляет ближайшего зомби.",
         skill_slipper_name: "Тапок возмездия",
-        skill_slipper_desc: "Тяжелый домашний тапок наносит критический урон.",
+        skill_slipper_desc: "Тяжелый домашний тапок пробивает врагов и наносит критический урон.",
         skill_claws_slash_name: "Вихрь Когтей",
-        skill_claws_slash_desc: "Круговой разрез когтями вокруг котика, рассекающий толпы врагов.",
+        skill_claws_slash_desc: "Мощный разрез когтями перед котиком, рассекающий толпы врагов.",
         skill_valerian_name: "Банка Валерьянки",
-        skill_valerian_desc: "Бросок флакона ядовитой валерьянки. Токсичная лужа замедляет и растворяет зомби.",
+        skill_valerian_desc: "Бросок флакона валерьянки. Лужа замедляет и растворяет зомби (осторожно, токсична!).",
         skill_mine_name: "Мяу-Мины",
         skill_mine_desc: "Сбрасывает тикающие кошачьи мины, детонирующие при приближении врагов.",
-        
+
         // Passives
         skill_catnip_name: "Кошачья мята",
-        skill_catnip_desc: "+15% скорости атаки и +10% скорости бега.",
+        skill_catnip_desc: "+15% скорости атаки и +10% скорости бега за уровень.",
         skill_milk_name: "Свежее молочко",
-        skill_milk_desc: "Пассивно восстанавливает 3 HP каждые 2 секунды.",
+        skill_milk_desc: "Пассивно восстанавливает +4 HP каждую секунду за уровень.",
         skill_claws_name: "Острые когти",
-        skill_claws_desc: "+20% к урону всех кошачьих атак.",
+        skill_claws_desc: "+20% к урону всех кошачьих атак за уровень.",
         skill_magnet_name: "Магнитная лапка",
-        skill_magnet_desc: "+40% к радиусу притягивания рыбы и монет.",
+        skill_magnet_desc: "+40% к радиусу притягивания рыбы и монет за уровень.",
         skill_armor_name: "Густая шерстка",
-        skill_armor_desc: "-15% входящего урона и +25 к максимальному HP.",
+        skill_armor_desc: "-12% входящего урона и +25 к максимальному HP за уровень.",
         skill_static_name: "Статический Мех",
-        skill_static_desc: "Электризует шерсть при беге. Раз в 3 секунды бьет молнией по ближайшим врагам.",
+        skill_static_desc: "Электризует шерсть. Периодически бьет цепной молнией по ближайшим врагам.",
 
         // Evolutions
         evo_shark_name: "Золотая Акула-Меч",
-        evo_shark_desc: "Эволюция (Рыба + Когти). Огромная акула непрерывно крушит всё вокруг!",
+        evo_shark_desc: "Эволюция (Рыба + Когти). Две гигантские акулы непрерывно крушат всё вокруг!",
         evo_web_name: "Плазменная Паутина",
         evo_web_desc: "Эволюция (Клубок + Мята). Электрические нити связывают зомби в смертельную сеть.",
         evo_dome_name: "Священный Мур-Купол",
@@ -101,45 +119,55 @@ const I18N = {
         evo_barrage_name: "Град Бабушкиных Тапок",
         evo_barrage_desc: "Эволюция (Тапок + Молочко). Бесконечный ковровый обстрел тяжелыми тапками.",
         evo_wolverine_name: "Лапы Росомахи",
-        evo_wolverine_desc: "Эволюция (Вихрь Когтей + Когти). Смертоносные крестовые разрезы адамантиевыми когтями!",
+        evo_wolverine_desc: "Эволюция (Вихрь Когтей + Когти). Смертоносные круговые разрезы на 360°!",
         evo_valerian_storm_name: "Шторм Валерьянки",
-        evo_valerian_storm_desc: "Эволюция (Валерьянка + Мята). Гигантский токсичный вихрь, затягивающий и растворяющий зомби.",
+        evo_valerian_storm_desc: "Эволюция (Валерьянка + Мята). Гигантский токсичный вихрь, растворяющий толпы.",
+        evo_cluster_bomb_name: "Кассетные Мяу-Дроны",
+        evo_cluster_bomb_desc: "Эволюция (Мины + Шерстка). Самонаводящиеся кассетные удары без вреда для котика!",
 
         // Talents (Meta Shop)
         talent_hp: "Живучесть",
-        talent_hp_desc: "+15 к базовому максимальному здоровью",
+        talent_hp_desc: "+20 к базовому максимальному здоровью за уровень",
         talent_dmg: "Сила лап",
-        talent_dmg_desc: "+10% к базовому урону всех атак",
+        talent_dmg_desc: "+10% к базовому урону всех атак за уровень",
         talent_speed: "Ловкость",
-        talent_speed_desc: "+8% к базовой скорости передвижения",
+        talent_speed_desc: "+8% к базовой скорости передвижения за уровень",
         talent_greed: "Кошачья жадность",
-        talent_greed_desc: "+15% к шансу и стоимости выпадающих монет",
+        talent_greed_desc: "+20% к ценности выпадающих монет за уровень",
         talent_magnet: "Интуиция",
-        talent_magnet_desc: "+25% к радиусу сбора предметов",
+        talent_magnet_desc: "+25% к радиусу сбора предметов за уровень",
 
         // Quests
         quest_survive_60: "Выжить 1 минуту",
         quest_survive_180: "Выжить 3 минуты",
         quest_survive_300: "Выжить 5 минут",
+        quest_survive_600: "Выжить 10 минут",
         quest_kills_100: "Уничтожить 100 зомби",
         quest_kills_500: "Уничтожить 500 зомби",
-        quest_boss_vacuum: "Победить Робота-Пылесоса",
+        quest_kills_1500: "Уничтожить 1500 зомби",
+        quest_boss_vacuum: "Победить босса",
+        quest_boss_dozer: "Победить Генерала Мясорубку",
         quest_make_evo: "Создать супер-эволюцию оружия",
-        quest_reach_lvl_15: "Достичь 15 уровня за один бой"
+        quest_three_evos: "Открыть 3 разные эволюции в Энциклопедии",
+        quest_reach_lvl_15: "Достичь 15 уровня за один бой",
+        quest_hardcore_win: "Эвакуироваться в режиме Хардкор"
     },
     en: {
         gameTitle: "CATPOCALYPSE: SURVIVOR",
         subtitle: "Cats vs Zombies",
         play: "BATTLE!",
         upgrades: "TALENTS",
-        selectHero: "CHOOSE CAT",
+        selectHero: "CATS",
         quests: "QUESTS",
+        codex: "EVOLUTIONS",
+        dailyRewards: "DAILY",
         back: "BACK",
         coins: "Coins",
         level: "Level",
         time: "Time",
         kills: "Kills",
         hp: "Health",
+        speed: "Speed",
         paused: "PAUSED",
         resume: "RESUME",
         toMenu: "TO MENU",
@@ -161,10 +189,13 @@ const I18N = {
         locked: "Locked",
         select: "Select",
         selected: "Selected",
-        controlsHint: "WASD / Arrows / Joystick / Space (Dash)",
+        claim: "CLAIM",
+        claimed: "CLAIMED",
+        controlsHint: "WASD / Arrows / Joystick • Space: Dash • E: Ultimate • Esc: Pause",
         soundOn: "Sound: ON",
         soundOff: "Sound: OFF",
         dash: "DASH",
+        ult: "ULT",
         chestTitle: "MYSTERY CHEST!",
         chestOpen: "OPEN!",
         chestReward: "Chest Rewards:",
@@ -174,46 +205,57 @@ const I18N = {
         afkWarning: "DON'T STAND STILL! ENEMIES ENRAGED!",
         heroStatsHp: "Health",
         heroStatsSpeed: "Speed",
+        hardcoreLabel: "💀 HARDCORE (+50% coins)",
+        damageStatsTitle: "Weapon Damage Breakdown",
+        codexSubtitle: "Max a weapon to Lv.5 + its matching passive to unlock its Evolution!",
+        dailySubtitle: "Come back every day for bonus coins!",
+
+        mode_park_name: "Central Park",
+        mode_park_desc: "Quick Raid: 5 min • Standard waves • x1.0 coins",
+        mode_night_name: "Night City",
+        mode_night_desc: "Classic: 8 min • Tougher waves • x1.35 coins",
+        mode_factory_name: "Factory Zone",
+        mode_factory_desc: "Nightmare: 10 min • Relentless hordes • x1.75 coins",
 
         hero_barsik: "Barsik",
-        hero_barsik_desc: "Brave ginger warrior. Weapon: Fish Boomerang. ⚠️ HARDCORE: 95 HP, faster enemy waves! Evac: 10 min.",
+        hero_barsik_desc: "Brave ginger warrior. Weapon: Fish Boomerang. Ult (E): 360° Fish Nova.",
         hero_murzik: "Murzik",
-        hero_murzik_desc: "Agile ninja cat. Weapon: Yarn Ball. +20% Speed. Evac: 15 min.",
+        hero_murzik_desc: "Agile ninja cat. Weapon: Yarn Ball. +Speed. Ult (E): Shadow Haste + 8 Shurikens.",
         hero_pukhlyash: "Chonky",
-        hero_pukhlyash_desc: "Fluffy tank. Weapon: Purr Aura. +50% HP. Evac: 20 min.",
+        hero_pukhlyash_desc: "Fluffy tank. Weapon: Purr Aura. +HP. Ult (E): Mega Belly-Slam & 15% Heal.",
 
         skill_fish_name: "Fish Boomerang",
         skill_fish_desc: "Flies forward, piercing enemies and returning back.",
         skill_yarn_name: "Yarn Ball",
         skill_yarn_desc: "Bounces between zombies dealing damage to groups.",
         skill_aura_name: "Purr Aura",
-        skill_aura_desc: "A soothing sound wave hurts all nearby zombies periodically.",
+        skill_aura_desc: "A soothing sound wave hurts and pushes back nearby zombies.",
         skill_laser_name: "Laser Pointer",
         skill_laser_desc: "Deadly red beam vaporizes the closest threat.",
         skill_slipper_name: "Flying Slipper",
-        skill_slipper_desc: "Heavy household slipper knocks out enemies.",
+        skill_slipper_desc: "Heavy household slipper pierces and knocks out enemies.",
         skill_claws_slash_name: "Whirlwind Claws",
-        skill_claws_slash_desc: "Circular slash cleaving through all nearby enemies.",
+        skill_claws_slash_desc: "Fierce slash cleaving through nearby enemies.",
         skill_valerian_name: "Valerian Splash",
-        skill_valerian_desc: "Throws a toxic valerian potion puddle that slows and melts zombies.",
+        skill_valerian_desc: "Throws a toxic valerian puddle that slows and melts zombies (toxic to touch!).",
         skill_mine_name: "Meow Mines",
         skill_mine_desc: "Drops ticking yarn bombs that explode in a massive radius.",
 
         skill_catnip_name: "Catnip Frenzy",
-        skill_catnip_desc: "+15% attack speed and +10% move speed.",
+        skill_catnip_desc: "+15% attack speed and +10% move speed per level.",
         skill_milk_name: "Fresh Milk",
-        skill_milk_desc: "Regenerates 3 HP every 2 seconds.",
+        skill_milk_desc: "Regenerates +4 HP every second per level.",
         skill_claws_name: "Sharp Claws",
-        skill_claws_desc: "+20% bonus damage to all attacks.",
+        skill_claws_desc: "+20% bonus damage to all attacks per level.",
         skill_magnet_name: "Magnet Paw",
-        skill_magnet_desc: "+40% pickup radius for items and coins.",
+        skill_magnet_desc: "+40% pickup radius for items and coins per level.",
         skill_armor_name: "Fluffy Fur",
-        skill_armor_desc: "-15% damage taken and +25 Max HP.",
+        skill_armor_desc: "-12% damage taken and +25 Max HP per level.",
         skill_static_name: "Static Fur",
-        skill_static_desc: "Charges fur electricity while running, periodically striking enemies with chain lightning.",
+        skill_static_desc: "Charges fur electricity, striking nearby enemies with chain lightning.",
 
         evo_shark_name: "Golden Shark Blade",
-        evo_shark_desc: "Evolution (Fish + Claws). Massive shark slices through hordes relentlessly!",
+        evo_shark_desc: "Evolution (Fish + Claws). Two giant sharks slice through hordes relentlessly!",
         evo_web_name: "Plasma Web",
         evo_web_desc: "Evolution (Yarn + Catnip). Electric threads bind and electrocute zombies.",
         evo_dome_name: "Sacred Meow Dome",
@@ -223,31 +265,77 @@ const I18N = {
         evo_barrage_name: "Grandma Slipper Barrage",
         evo_barrage_desc: "Evolution (Slipper + Milk). Non-stop carpet bombing with slippers.",
         evo_wolverine_name: "Wolverine Claws",
-        evo_wolverine_desc: "Evolution (Whirlwind Claws + Claws). Massive screen-clearing adamantium cross slashes!",
+        evo_wolverine_desc: "Evolution (Whirlwind Claws + Claws). Massive 360° adamantium cross slashes!",
         evo_valerian_storm_name: "Valerian Vortex",
-        evo_valerian_storm_desc: "Evolution (Valerian + Catnip). Giant toxic vortex pulling and dissolving zombies.",
+        evo_valerian_storm_desc: "Evolution (Valerian + Catnip). Giant toxic vortex dissolving zombie crowds.",
+        evo_cluster_bomb_name: "Cluster Meow-Drones",
+        evo_cluster_bomb_desc: "Evolution (Mines + Armor). Homing cluster blasts with zero self-damage!",
 
         talent_hp: "Toughness",
-        talent_hp_desc: "+15 Base Max Health",
+        talent_hp_desc: "+20 Base Max Health per level",
         talent_dmg: "Paw Strength",
-        talent_dmg_desc: "+10% Base Damage",
+        talent_dmg_desc: "+10% Base Damage per level",
         talent_speed: "Agility",
-        talent_speed_desc: "+8% Base Move Speed",
+        talent_speed_desc: "+8% Base Move Speed per level",
         talent_greed: "Cat Greed",
-        talent_greed_desc: "+15% Bonus Coin Drop",
+        talent_greed_desc: "+20% Coin Value per level",
         talent_magnet: "Intuition",
-        talent_magnet_desc: "+25% Item Pickup Magnet",
+        talent_magnet_desc: "+25% Item Pickup Magnet per level",
 
         quest_survive_60: "Survive 1 minute",
         quest_survive_180: "Survive 3 minutes",
         quest_survive_300: "Survive 5 minutes",
+        quest_survive_600: "Survive 10 minutes",
         quest_kills_100: "Defeat 100 zombies",
         quest_kills_500: "Defeat 500 zombies",
-        quest_boss_vacuum: "Defeat Robot Vacuum Boss",
+        quest_kills_1500: "Defeat 1500 zombies",
+        quest_boss_vacuum: "Defeat a Boss",
+        quest_boss_dozer: "Defeat General Bulldozer",
         quest_make_evo: "Create a weapon evolution",
-        quest_reach_lvl_15: "Reach Level 15 in one run"
+        quest_three_evos: "Discover 3 different Evolutions",
+        quest_reach_lvl_15: "Reach Level 15 in one run",
+        quest_hardcore_win: "Evacuate in Hardcore Mode"
     }
 };
+
+const GAME_MODES = [
+    {
+        id: "park",
+        nameKey: "mode_park_name",
+        descKey: "mode_park_desc",
+        icon: "🌿",
+        evacSeconds: 300, // 5 min
+        coinMult: 1.0,
+        hpMult: 1.0,
+        speedMult: 1.0,
+        floorTint: 0xffffff,
+        bgColor: "#27ae60"
+    },
+    {
+        id: "night_city",
+        nameKey: "mode_night_name",
+        descKey: "mode_night_desc",
+        icon: "🌙",
+        evacSeconds: 480, // 8 min
+        coinMult: 1.35,
+        hpMult: 1.18,
+        speedMult: 1.08,
+        floorTint: 0x6f7fa8,
+        bgColor: "#192136"
+    },
+    {
+        id: "factory",
+        nameKey: "mode_factory_name",
+        descKey: "mode_factory_desc",
+        icon: "🏭",
+        evacSeconds: 600, // 10 min
+        coinMult: 1.75,
+        hpMult: 1.35,
+        speedMult: 1.15,
+        floorTint: 0x9c8270,
+        bgColor: "#2b211b"
+    }
+];
 
 const CHARACTERS = [
     {
@@ -255,12 +343,12 @@ const CHARACTERS = [
         nameKey: "hero_barsik",
         descKey: "hero_barsik_desc",
         sprite: "cat_barsik",
-        maxHp: 95,
-        speed: 195,
+        maxHp: 120,
+        speed: 210,
         startingWeapon: "fish",
+        ultIcon: "🐟",
         price: 0,
-        unlocked: true,
-        evacTargetSeconds: 600 // 10 minutes
+        unlocked: true
     },
     {
         id: "murzik",
@@ -270,9 +358,9 @@ const CHARACTERS = [
         maxHp: 135,
         speed: 265,
         startingWeapon: "yarn",
+        ultIcon: "🌀",
         price: 250,
-        unlocked: false,
-        evacTargetSeconds: 900 // 15 minutes
+        unlocked: false
     },
     {
         id: "pukhlyash",
@@ -282,9 +370,9 @@ const CHARACTERS = [
         maxHp: 250,
         speed: 185,
         startingWeapon: "aura",
+        ultIcon: "💥",
         price: 500,
-        unlocked: false,
-        evacTargetSeconds: 1200 // 20 minutes
+        unlocked: false
     }
 ];
 
@@ -407,7 +495,9 @@ const SKILLS_DATABASE = {
         baseDamage: 65,
         damagePerLevel: 22,
         cooldown: 2400,
-        cooldownReduction: 200
+        cooldownReduction: 200,
+        evoId: "evo_cluster_bomb",
+        evoPassive: "armor"
     },
 
     // Passives
@@ -418,8 +508,8 @@ const SKILLS_DATABASE = {
         descKey: "skill_catnip_desc",
         icon: "drop_xp",
         maxLevel: 5,
-        attackSpeedBonus: 0.12,
-        moveSpeedBonus: 0.08
+        attackSpeedBonus: 0.15,
+        moveSpeedBonus: 0.10
     },
     milk: {
         id: "milk",
@@ -428,8 +518,8 @@ const SKILLS_DATABASE = {
         descKey: "skill_milk_desc",
         icon: "drop_heal",
         maxLevel: 5,
-        regenAmount: 3,
-        regenInterval: 2000
+        regenAmount: 4,
+        regenInterval: 1000
     },
     claws: {
         id: "claws",
@@ -438,14 +528,14 @@ const SKILLS_DATABASE = {
         descKey: "skill_claws_desc",
         icon: "drop_coin",
         maxLevel: 5,
-        damageMultiplier: 0.18
+        damageMultiplier: 0.20
     },
     magnet: {
         id: "magnet",
         type: "passive",
         nameKey: "skill_magnet_name",
         descKey: "skill_magnet_desc",
-        icon: "drop_clock",
+        icon: "drop_magnet_all",
         maxLevel: 5,
         magnetBonus: 0.40
     },
@@ -481,7 +571,7 @@ const SKILLS_DATABASE = {
         icon: "evo_shark",
         maxLevel: 1,
         baseDamage: 85,
-        cooldown: 350
+        cooldown: 300
     },
     evo_web: {
         id: "evo_web",
@@ -511,8 +601,8 @@ const SKILLS_DATABASE = {
         descKey: "evo_beam_desc",
         icon: "evo_beam",
         maxLevel: 1,
-        baseDamage: 120,
-        cooldown: 500
+        baseDamage: 75,
+        cooldown: 260
     },
     evo_barrage: {
         id: "evo_barrage",
@@ -545,6 +635,16 @@ const SKILLS_DATABASE = {
         baseDamage: 90,
         cooldown: 1800,
         duration: 5000
+    },
+    evo_cluster_bomb: {
+        id: "evo_cluster_bomb",
+        type: "evolution",
+        nameKey: "evo_cluster_bomb_name",
+        descKey: "evo_cluster_bomb_desc",
+        icon: "evo_cluster_bomb",
+        maxLevel: 1,
+        baseDamage: 115,
+        cooldown: 1650
     }
 };
 
@@ -553,16 +653,31 @@ const TALENTS = [
     { id: "dmg", nameKey: "talent_dmg", descKey: "talent_dmg_desc", maxLvl: 5, baseCost: 75, costMult: 1.8, valPerLvl: 0.1 },
     { id: "speed", nameKey: "talent_speed", descKey: "talent_speed_desc", maxLvl: 5, baseCost: 60, costMult: 1.7, valPerLvl: 0.08 },
     { id: "greed", nameKey: "talent_greed", descKey: "talent_greed_desc", maxLvl: 5, baseCost: 50, costMult: 1.6, valPerLvl: 0.2 },
-    { id: "magnet", nameKey: "talent_magnet", descKey: "talent_magnet_desc", maxLvl: 5, baseCost: 40, costMult: 1.6, valPerLvl: 0.3 }
+    { id: "magnet", nameKey: "talent_magnet", descKey: "talent_magnet_desc", maxLvl: 5, baseCost: 40, costMult: 1.6, valPerLvl: 0.25 }
+];
+
+const DAILY_REWARDS = [
+    { day: 1, coins: 50, label: "День 1" },
+    { day: 2, coins: 80, label: "День 2" },
+    { day: 3, coins: 120, label: "День 3" },
+    { day: 4, coins: 180, label: "День 4" },
+    { day: 5, coins: 250, label: "День 5" },
+    { day: 6, coins: 350, label: "День 6" },
+    { day: 7, coins: 600, label: "День 7 🌟" }
 ];
 
 const QUESTS = [
     { id: "survive_60", textKey: "quest_survive_60", reward: 50, check: (data) => data.bestTime >= 60 },
     { id: "survive_180", textKey: "quest_survive_180", reward: 100, check: (data) => data.bestTime >= 180 },
     { id: "survive_300", textKey: "quest_survive_300", reward: 200, check: (data) => data.bestTime >= 300 },
+    { id: "survive_600", textKey: "quest_survive_600", reward: 350, check: (data) => data.bestTime >= 600 },
     { id: "kills_100", textKey: "quest_kills_100", reward: 50, check: (data) => data.bestKills >= 100 },
     { id: "kills_500", textKey: "quest_kills_500", reward: 150, check: (data) => data.bestKills >= 500 },
+    { id: "kills_1500", textKey: "quest_kills_1500", reward: 300, check: (data) => data.bestKills >= 1500 },
     { id: "boss_vacuum", textKey: "quest_boss_vacuum", reward: 200, check: (data) => data.bossDefeated },
+    { id: "boss_dozer", textKey: "quest_boss_dozer", reward: 350, check: (data) => data.dozerDefeated },
     { id: "make_evo", textKey: "quest_make_evo", reward: 250, check: (data) => data.evoCreated },
-    { id: "reach_lvl_15", textKey: "quest_reach_lvl_15", reward: 100, check: (data) => data.maxLevelReached >= 15 }
+    { id: "three_evos", textKey: "quest_three_evos", reward: 400, check: (data) => (data.discoveredEvos || []).length >= 3 },
+    { id: "reach_lvl_15", textKey: "quest_reach_lvl_15", reward: 100, check: (data) => data.maxLevelReached >= 15 },
+    { id: "hardcore_win", textKey: "quest_hardcore_win", reward: 500, check: (data) => data.hardcoreVictory }
 ];

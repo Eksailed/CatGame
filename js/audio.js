@@ -427,6 +427,27 @@ class SoundManager {
         });
     }
 
+    // All-Arena Magnet vacuum chime
+    playMagnetAll() {
+        const freqs = [330, 440, 554.37, 659.25, 880, 1174.66];
+        freqs.forEach((f, idx) => {
+            setTimeout(() => this.playTone(f, 'sine', 0.14, 0.2, 80), idx * 45);
+        });
+    }
+
+    // Hero Ultimate Activation
+    playUlt() {
+        this.playNoise(0.22, 0.32, false);
+        this.playTone(220, 'sawtooth', 0.25, 0.28, 440);
+        setTimeout(() => this.playTone(660, 'triangle', 0.28, 0.26, 220), 90);
+    }
+
+    // Killstreak Combo Milestone
+    playComboMilestone() {
+        this.playTone(783.99, 'triangle', 0.1, 0.2, 0);
+        setTimeout(() => this.playTone(1046.5, 'triangle', 0.18, 0.22, 60), 70);
+    }
+
     stopMusic() {
         this.musicPlaying = false;
         if (this.musicTimer) {

@@ -16,29 +16,31 @@ class PlatformSDKWrapper {
         const inIframe = (window.parent !== window);
         this.isInsideVK = hasVkParams || inIframe;
 
-        // 1. Check for VK Bridge (VK Games)
-        if (typeof vkBridge !== 'undefined') {
+        // 1. Check for VK Bridge (VK Games) only when actually embedded in VK / iframe
+        if (typeof vkBridge !== 'undefined' && this.isInsideVK) {
             try {
-                await vkBridge.send('VKWebAppInit');
+                await Promise.race([
+                    vkBridge.send('VKWebAppInit'),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('VKWebAppInit timeout')), 800))
+                ]);
                 this.platform = 'vk';
                 this.isInitialized = true;
                 this.lang = 'ru';
                 console.log('[PlatformSDK] VK Bridge initialized successfully! Inside VK:', this.isInsideVK);
 
                 // Show bottom banner ad if running inside VK
-                if (this.isInsideVK) {
-                    setTimeout(() => {
-                        this.showBanner();
-                    }, 3500);
-                }
+                setTimeout(() => {
+                    this.showBanner();
+                }, 3500);
                 return true;
             } catch (err) {
                 console.warn('[PlatformSDK] VK Bridge init error, checking fallbacks:', err);
             }
         }
 
-        // 2. Check for Yandex Games SDK
-        if (typeof YaGames !== 'undefined') {
+        // 2. Check for Yandex Games SDK only when hosted on Yandex
+        const isYandexHost = window.location.hostname.includes('yandex') || window.location.hostname.includes('yastatic') || urlParams.has('app-id');
+        if (typeof YaGames !== 'undefined' && isYandexHost) {
             try {
                 this.ysdk = await YaGames.init();
                 this.platform = 'yandex';
@@ -360,7 +362,7 @@ class PlatformSDKWrapper {
 
         if (this.platform === 'yandex' && this.ysdk) {
             try {
-                const lb = await this.ysdk.getLeaderboards();
+                const lb = this.ysdk.leaderboards || (await this.ysdk.getLeaderboards());
                 await lb.setLeaderboardScore('survivor_kills', score);
             } catch (e) {}
         }
